@@ -1,0 +1,8 @@
+body {
+  margin: 0
+}
+
+.Canvas-Container {
+  width: 100vw;
+  height: 100vh;
+}
