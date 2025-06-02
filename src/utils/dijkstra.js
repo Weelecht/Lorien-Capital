@@ -297,7 +297,7 @@ export const dijkstraGraph = (startKey, endKey, nodes, edges) => {
   pq.enqueue(startKey, fCost.get(startKey));
   
   let nodesExplored = 0;
-  const maxNodesToExplore = Math.min(1000, nodes.size * 0.5); // Limit exploration
+  let maxNodesToExplore = Math.min(1000, nodes.size * 0.5); // Change const to let for modification
   
   while (!pq.isEmpty() && nodesExplored < maxNodesToExplore) {
     const { element: currentKey } = pq.dequeue();
@@ -311,7 +311,14 @@ export const dijkstraGraph = (startKey, endKey, nodes, edges) => {
       break;
     }
     
+    // Early termination optimization: if we're very close to target, prioritize direct path
     const currentNode = nodes.get(currentKey);
+    const distanceToEnd = Math.abs(currentNode.x - endNode.x) + Math.abs(currentNode.y - endNode.y);
+    if (distanceToEnd <= 3 && nodesExplored > 50) {
+      // Close to target, reduce search scope for faster completion
+      maxNodesToExplore = Math.min(maxNodesToExplore, nodesExplored + 100);
+    }
+    
     const connections = edges.get(currentKey) || new Set();
     
     for (const neighborKey of connections) {
@@ -425,7 +432,19 @@ export const dijkstraGraphAnimated = (startKey, endKey, nodes, edges) => {
       break;
     }
     
+    // Early termination optimization: if we're very close to target, prioritize direct path
     const currentNode = nodes.get(currentKey);
+    const distanceToEnd = Math.abs(currentNode.x - endNode.x) + Math.abs(currentNode.y - endNode.y);
+    if (distanceToEnd <= 3 && visited.size > 50) {
+      // Close to target, reduce search scope for faster completion
+      const maxNodesToExplore = Math.min(MAX_ANIMATION_STEPS, visited.size + 100);
+      const newPQ = new PriorityQueue();
+      for (const nodeKey of visited) {
+        newPQ.enqueue(nodeKey, manhattanDistance(nodeKey));
+      }
+      pq.heap = newPQ.heap;
+    }
+    
     const connections = edges.get(currentKey) || new Set();
     
     for (const neighborKey of connections) {

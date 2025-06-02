@@ -68,7 +68,7 @@ const ResponsiveCamera = ({ target = [0, 0, 0], gridWidth, gridHeight }) => {
   return null;
 };
 
-const GraphVisualization = ({ position, startPoint, endPoint, pathKeys, graphData, animationState, getNodeColor, gridWidth, gridHeight }) => {
+const GraphVisualization = ({ position, startPoint, endPoint, pathKeys, graphData, animationState, gridWidth, gridHeight, isAnimating, path }) => {
   const meshRefs = useRef([]);
   const skip = 2;
 
@@ -82,9 +82,49 @@ const GraphVisualization = ({ position, startPoint, endPoint, pathKeys, graphDat
 
   // PERFORMANCE OPTIMIZATION: Shared geometries and materials
   const sharedGeometry = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
-  const defaultMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    roughness: 0.9,
-    metalness: 0.0
+  
+  // Create shared materials for different node types
+  const sharedMaterials = useMemo(() => ({
+    default: new THREE.MeshStandardMaterial({
+      roughness: 0.9,
+      metalness: 0.0,
+      color: '#808080'
+    }),
+    start: new THREE.MeshStandardMaterial({
+      color: '#00ff00',
+      emissive: '#00ff00',
+      emissiveIntensity: 1.0,
+      roughness: 0.9,
+      metalness: 0.0
+    }),
+    end: new THREE.MeshStandardMaterial({
+      color: '#ff0000',
+      emissive: '#ff0000',
+      emissiveIntensity: 1.0,
+      roughness: 0.9,
+      metalness: 0.0
+    }),
+    current: new THREE.MeshStandardMaterial({
+      color: '#aa00ff',
+      emissive: '#aa00ff',
+      emissiveIntensity: 1.5,
+      roughness: 0.9,
+      metalness: 0.0
+    }),
+    path: new THREE.MeshStandardMaterial({
+      color: '#00ffff',
+      emissive: '#ffffff',
+      emissiveIntensity: 1.2,
+      roughness: 0.9,
+      metalness: 0.0
+    }),
+    completed: new THREE.MeshStandardMaterial({
+      color: '#00ffff',
+      emissive: '#ffffff',
+      emissiveIntensity: 1.2,
+      roughness: 0.9,
+      metalness: 0.0
+    })
   }), []);
 
   // PERFORMANCE OPTIMIZATION: Cache node size calculations
@@ -131,18 +171,25 @@ const GraphVisualization = ({ position, startPoint, endPoint, pathKeys, graphDat
   const edgeLines = useMemo(() => {
     const lines = [];
     
-    // MAJOR PERFORMANCE OPTIMIZATION: Only show current path edges
-    // This reduces from ~2000+ edges to ~50-100 edges maximum
-    if (!animationState || !animationState.currentPath || animationState.currentPath.length < 2) {
+    // Show current path edges during animation, or completed path edges during pause
+    let pathToShow = null;
+    
+    if (animationState && animationState.currentPath && animationState.currentPath.length >= 2) {
+      // During animation - show current path
+      pathToShow = animationState.currentPath;
+    } else if (!isAnimating && path && path.length >= 2) {
+      // During completion pause - show full completed path
+      pathToShow = path;
+    }
+    
+    if (!pathToShow || pathToShow.length < 2) {
       return lines;
     }
     
-    const currentPath = animationState.currentPath;
-    
-    // Only render edges for the current path progression
-    for (let i = 0; i < currentPath.length - 1; i++) {
-      const nodeKey1 = currentPath[i];
-      const nodeKey2 = currentPath[i + 1];
+    // Only render edges for the path
+    for (let i = 0; i < pathToShow.length - 1; i++) {
+      const nodeKey1 = pathToShow[i];
+      const nodeKey2 = pathToShow[i + 1];
       
       const node1 = nodes.get(nodeKey1);
       const node2 = nodes.get(nodeKey2);
@@ -167,31 +214,33 @@ const GraphVisualization = ({ position, startPoint, endPoint, pathKeys, graphDat
       lines.push({
         id: `path-${nodeKey1}-${nodeKey2}`,
         points: [startPos, endPos],
-        color: '#00ffff',
+        color: '#00ffff', // Always cyan for consistency
         opacity: 1.0,
         lineWidth: 3.5
       });
     }
     
     return lines;
-  }, [nodes, position, skip, halfSizeWidth, halfSizeHeight, getNodeSize, animationState]);
+  }, [nodes, position, skip, halfSizeWidth, halfSizeHeight, getNodeSize, animationState, isAnimating, path]);
 
   // PERFORMANCE OPTIMIZATION: Group nodes by material type to reduce state changes
   const nodeGroups = useMemo(() => {
     const groups = {
       critical: [], // Start, end, current nodes
       path: [],     // Path nodes
+      completed: [], // Completed path nodes (yellow)
       terrain: []   // Regular terrain nodes
     };
 
     for (const [nodeKey, node] of nodes.entries()) {
       const nodeSize = getNodeSize(nodeKey);
-      const nodeColor = getNodeColor(nodeKey);
       
-      // Determine if this is a critical node (needs shadows and special treatment)
-      const isCritical = (startPoint && node.x === startPoint.x && node.y === startPoint.y) ||
-                        (endPoint && node.x === endPoint.x && node.y === endPoint.y) ||
-                        (animationState && animationState.current === nodeKey);
+      // Determine node type for material selection
+      const isStart = startPoint && node.x === startPoint.x && node.y === startPoint.y;
+      const isEnd = endPoint && node.x === endPoint.x && node.y === endPoint.y;
+      const isCurrent = animationState && animationState.current === nodeKey;
+      const isInCurrentPath = animationState && isAnimating && animationState.currentPath?.includes(nodeKey);
+      const isInCompletedPath = !isAnimating && pathKeys?.has(nodeKey);
       
       const nodeData = {
         key: nodeKey,
@@ -201,22 +250,34 @@ const GraphVisualization = ({ position, startPoint, endPoint, pathKeys, graphDat
           position[2] + nodeSize.height / 2
         ],
         scale: [nodeSize.width, nodeSize.height, nodeSize.depth],
-        color: nodeColor.color || nodeColor,
-        emissive: nodeColor.emissive || '#000000',
-        emissiveIntensity: nodeColor.emissiveIntensity || 0
+        nodeType: isStart ? 'start' : isEnd ? 'end' : isCurrent ? 'current' : 
+                  isInCurrentPath ? 'path' : isInCompletedPath ? 'completed' : 'terrain',
+        terrainColor: (() => {
+          // Only calculate terrain color for terrain nodes
+          if (isStart || isEnd || isCurrent || isInCurrentPath || isInCompletedPath) return null;
+          
+          const weight = node.weight;
+          const minWeight = 0.1;
+          const maxWeight = 25.0;
+          const normalizedWeight = Math.max(0, Math.min(1, (weight - minWeight) / (maxWeight - minWeight)));
+          const grayValue = Math.floor(255 * (1 - normalizedWeight));
+          return `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
+        })()
       };
 
-      if (isCritical) {
+      if (isStart || isEnd || isCurrent) {
         groups.critical.push(nodeData);
-      } else if (animationState?.currentPath?.includes(nodeKey) || pathKeys?.has(nodeKey)) {
+      } else if (isInCurrentPath) {
         groups.path.push(nodeData);
+      } else if (isInCompletedPath) {
+        groups.completed.push(nodeData);
       } else {
         groups.terrain.push(nodeData);
       }
     }
 
     return groups;
-  }, [nodes, getNodeSize, getNodeColor, startPoint, endPoint, animationState, pathKeys, skip, halfSizeWidth, halfSizeHeight, position]);
+  }, [nodes, getNodeSize, startPoint, endPoint, animationState, pathKeys, skip, halfSizeWidth, halfSizeHeight, position, isAnimating]);
 
   return (
     <>
@@ -241,15 +302,8 @@ const GraphVisualization = ({ position, startPoint, endPoint, pathKeys, graphDat
           castShadow
           receiveShadow
           geometry={sharedGeometry}
-        >
-          <meshStandardMaterial 
-            color={nodeData.color}
-            emissive={nodeData.emissive}
-            emissiveIntensity={nodeData.emissiveIntensity}
-            roughness={0.9}
-            metalness={0.0}
-          />
-        </mesh>
+          material={sharedMaterials[nodeData.nodeType]}
+        />
       ))}
       
       {/* PERFORMANCE OPTIMIZATION: Render path nodes without shadows */}
@@ -259,28 +313,31 @@ const GraphVisualization = ({ position, startPoint, endPoint, pathKeys, graphDat
           position={nodeData.position}
           scale={nodeData.scale}
           geometry={sharedGeometry}
-        >
-          <meshStandardMaterial 
-            color={nodeData.color}
-            emissive={nodeData.emissive}
-            emissiveIntensity={nodeData.emissiveIntensity}
-            roughness={0.9}
-            metalness={0.0}
-          />
-        </mesh>
+          material={sharedMaterials.path}
+        />
       ))}
       
-      {/* PERFORMANCE OPTIMIZATION: Render terrain nodes without shadows or emissive */}
+      {/* PERFORMANCE OPTIMIZATION: Render completed path nodes */}
+      {nodeGroups.completed.map((nodeData) => (
+        <mesh
+          key={nodeData.key}
+          position={nodeData.position}
+          scale={nodeData.scale}
+          geometry={sharedGeometry}
+          material={sharedMaterials.completed}
+        />
+      ))}
+      
+      {/* PERFORMANCE OPTIMIZATION: Render terrain nodes with dynamic colors */}
       {nodeGroups.terrain.map((nodeData) => (
         <mesh
           key={nodeData.key}
           position={nodeData.position}
           scale={nodeData.scale}
           geometry={sharedGeometry}
-          material={defaultMaterial}
         >
           <meshStandardMaterial 
-            color={nodeData.color}
+            color={nodeData.terrainColor}
             roughness={0.9}
             metalness={0.0}
           />
@@ -302,7 +359,8 @@ const FPSCounter = () => {
       frameCount.current++;
       const currentTime = performance.now();
       
-      if (currentTime >= lastTime.current + 1000) {
+      // Update FPS every 2 seconds instead of every second for better performance
+      if (currentTime >= lastTime.current + 2000) {
         setFps(Math.round((frameCount.current * 1000) / (currentTime - lastTime.current)));
         frameCount.current = 0;
         lastTime.current = currentTime;
@@ -421,12 +479,16 @@ export default function App() {
   const [animationSteps, setAnimationSteps] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [animationSpeed, setAnimationSpeed] = useState(1); // Maximum speed - 1ms
+  const [animationSpeed, setAnimationSpeed] = useState(8); // Increased to 125 FPS for ultra-smooth animation
   const [animationState, setAnimationState] = useState(null);
   const [cycleCount, setCycleCount] = useState(0); // Track cycle number
   
   // Track if initial cycle has started to prevent re-triggering
   const initialCycleStarted = useRef(false);
+  // Use ref to track animation steps to avoid dependency array issues
+  const animationStepsRef = useRef([]);
+  // Animation timing ref for smooth requestAnimationFrame
+  const lastAnimationTime = useRef(0);
 
   // Window resize handler for responsiveness
   useEffect(() => {
@@ -524,6 +586,64 @@ export default function App() {
     };
   }, [gridWidth, gridHeight, calculateDistance]);
 
+  // Function to start a new pathfinding cycle
+  const startNewCycle = useCallback(() => {
+    // Generate new random points
+    const { start, end, distance } = generateRandomPoints();
+    
+    setCycleCount(prev => prev + 1);
+    
+    // Randomize terrain ONLY when generating new start/end points
+    const newNoiseSeed = Math.floor(Math.random() * 1000) + 1;
+    const newNoiseDetail = 1.0 + Math.random() * 5.0; // Range: 1.0 to 6.0 for more complex terrain
+    
+    setNoiseSeed(newNoiseSeed);
+    setNoiseDetail(newNoiseDetail);
+    
+    // Reset states
+    setPath([]);
+    setPathKeys(new Set());
+    setAnimationState(null);
+    
+    // Set new points
+    setStartPoint(start);
+    setEndPoint(end);
+    
+    const startKey = `${start.x},${start.y}`;
+    const endKey = `${end.x},${end.y}`;
+    
+    // Calculate new path
+    const result = findShortestGraphPath(startKey, endKey, graphData.nodes, graphData.edges);
+    
+    if (result.pathExists && result.path.length > 0) {
+      // Create animation steps for smooth path progression
+      const pathAnimationSteps = result.path.map((nodeKey, index) => ({
+        type: 'pathProgress',
+        current: nodeKey,
+        currentPath: result.path.slice(0, index + 1),
+        completed: index === result.path.length - 1,
+        totalSteps: result.path.length
+      }));
+      
+      setAnimationSteps(pathAnimationSteps);
+      animationStepsRef.current = pathAnimationSteps;
+      setCurrentStep(0);
+      
+      // Start animation immediately with first step
+      setIsAnimating(true);
+      setAnimationState({
+        active: true,
+        current: pathAnimationSteps[0].current,
+        lastNode: null,
+        currentPath: pathAnimationSteps[0].currentPath || [pathAnimationSteps[0].current],
+        completed: pathAnimationSteps[0].completed
+      });
+    } else {
+      // Try again immediately if no path found
+      setTimeout(() => startNewCycle(), 100);
+    }
+  }, [generateRandomPoints, graphData.nodes, graphData.edges]);
+
   // Auto-cycle effect - only run once to start first cycle
   useEffect(() => {
     // Prevent re-triggering when terrain randomizes
@@ -533,148 +653,54 @@ export default function App() {
       // Mark that initial cycle has started
       initialCycleStarted.current = true;
       
-      // Generate new random points
-      const { start, end, distance } = generateRandomPoints();
-      
-      setCycleCount(1);
-      
-      // Set the new points
-      setStartPoint(start);
-      setEndPoint(end);
-      
-      const startKey = `${start.x},${start.y}`;
-      const endKey = `${end.x},${end.y}`;
-      
-      // Calculate the optimal path
-      const result = findShortestGraphPath(startKey, endKey, graphData.nodes, graphData.edges);
-      
-      if (result.pathExists && result.path.length > 0) {
-        // Create animation steps for smooth path progression
-        const pathAnimationSteps = result.path.map((nodeKey, index) => ({
-          type: 'pathProgress',
-          current: nodeKey,
-          currentPath: result.path.slice(0, index + 1),
-          completed: index === result.path.length - 1,
-          totalSteps: result.path.length
-        }));
-        
-        setAnimationSteps(pathAnimationSteps);
-        setCurrentStep(0);
-        
-        // Start animation immediately with first step
-        setIsAnimating(true);
-        setAnimationState({
-          active: true,
-          current: pathAnimationSteps[0].current,
-          lastNode: null,
-          currentPath: pathAnimationSteps[0].currentPath || [pathAnimationSteps[0].current],
-          completed: pathAnimationSteps[0].completed
-        });
-      } else {
-        // Try again immediately if no path found
-        setTimeout(autoCycle, 100);
-      }
+      startNewCycle();
     };
     
     // Start first cycle immediately - only run once
     const initialTimer = setTimeout(autoCycle, 500);
     
     return () => clearTimeout(initialTimer);
-  }, [graphData, generateRandomPoints]); // Keep dependencies but use ref to prevent re-runs
+  }, [startNewCycle]); // Use startNewCycle as dependency
 
-  // Animation progression effect
+  // Animation progression effect - Ultra smooth with requestAnimationFrame
   useEffect(() => {
-    if (!isAnimating || animationSteps.length === 0) return;
+    if (!isAnimating || animationStepsRef.current.length === 0) return;
 
     const nextStepIndex = currentStep + 1;
-    const isSecondToLast = nextStepIndex === animationSteps.length - 2;
-    const isLastStep = nextStepIndex === animationSteps.length - 1;
     
     const progressToNextStep = () => {
-      if (nextStepIndex < animationSteps.length) {
-        const step = animationSteps[nextStepIndex];
+      if (nextStepIndex < animationStepsRef.current.length) {
+        const step = animationStepsRef.current[nextStepIndex];
         
-        // If this is the completion step, handle everything immediately
+        // Always handle steps normally - no special completion handling
+        setCurrentStep(nextStepIndex);
+        setAnimationState({
+          active: true,
+          current: step.current,
+          lastNode: animationStepsRef.current[currentStep].current,
+          currentPath: step.currentPath || [step.current],
+          completed: step.completed
+        });
+        
+        // If this was the final step, smoothly transition to completion after a brief delay
         if (step.completed) {
-          // Set all completion states immediately together
-          setCurrentStep(nextStepIndex);
-          setAnimationState({
-            active: true,
-            current: step.current,
-            lastNode: animationSteps[currentStep].current,
-            currentPath: step.currentPath || [step.current],
-            completed: true
-          });
-          setPathKeys(new Set(step.currentPath || []));
-          setPath(step.currentPath || []);
-          setIsAnimating(false);
-          
-          // Start next cycle after 3 seconds
           setTimeout(() => {
-            // Increment cycle count
-            setCycleCount(prev => prev + 1);
+            setAnimationState({
+              active: false,
+              current: step.current,
+              lastNode: step.current,
+              currentPath: step.currentPath || [step.current],
+              completed: true
+            });
+            setPathKeys(new Set(step.currentPath || []));
+            setPath(step.currentPath || []);
+            setIsAnimating(false);
             
-            // Randomize terrain ONLY when generating new start/end points
-            const newNoiseSeed = Math.floor(Math.random() * 1000) + 1;
-            const newNoiseDetail = 1.0 + Math.random() * 5.0; // Range: 1.0 to 6.0 for more complex terrain
-            
-            setNoiseSeed(newNoiseSeed);
-            setNoiseDetail(newNoiseDetail);
-            
-            const { start, end, distance } = generateRandomPoints();
-            
-            // Reset states
-            setPath([]);
-            setPathKeys(new Set());
-            setAnimationState(null);
-            
-            // Set new points
-            setStartPoint(start);
-            setEndPoint(end);
-            
-            const startKey = `${start.x},${start.y}`;
-            const endKey = `${end.x},${end.y}`;
-            
-            // Calculate new path
-            const result = findShortestGraphPath(startKey, endKey, graphData.nodes, graphData.edges);
-            
-            if (result.pathExists && result.path.length > 0) {
-              // Create animation steps for smooth path progression
-              const pathAnimationSteps = result.path.map((nodeKey, index) => ({
-                type: 'pathProgress',
-                current: nodeKey,
-                currentPath: result.path.slice(0, index + 1),
-                completed: index === result.path.length - 1,
-                totalSteps: result.path.length
-              }));
-              
-              setAnimationSteps(pathAnimationSteps);
-              setCurrentStep(0);
-              
-              // Start animation immediately with first step
-              setIsAnimating(true);
-              setAnimationState({
-                active: true,
-                current: pathAnimationSteps[0].current,
-                lastNode: null,
-                currentPath: pathAnimationSteps[0].currentPath || [pathAnimationSteps[0].current],
-                completed: pathAnimationSteps[0].completed
-              });
-            } else {
-              // Try again immediately if no path found
-              setTimeout(autoCycle, 100);
-            }
-          }, 3000);
-        } else {
-          // Normal animation step
-          setCurrentStep(nextStepIndex);
-          setAnimationState({
-            active: true,
-            current: step.current,
-            lastNode: animationSteps[currentStep].current,
-            currentPath: step.currentPath || [step.current],
-            completed: step.completed
-          });
+            // Start next cycle after 3 seconds
+            setTimeout(() => {
+              startNewCycle();
+            }, 3000);
+          }, animationSpeed); // Small delay to show the final step
         }
       } else {
         // Animation is complete
@@ -682,127 +708,34 @@ export default function App() {
       }
     };
 
-    // Special handling: if we're second-to-last, skip directly to completion
-    if (isSecondToLast && animationSteps.length > 2) {
-      // Jump directly to the final completion step
-      const finalStep = animationSteps[animationSteps.length - 1];
-      setCurrentStep(animationSteps.length - 1);
-      setAnimationState({
-        active: true,
-        current: finalStep.current,
-        lastNode: animationSteps[currentStep].current,
-        currentPath: finalStep.currentPath || [finalStep.current],
-        completed: true
-      });
-      setPathKeys(new Set(finalStep.currentPath || []));
-      setPath(finalStep.currentPath || []);
-      setIsAnimating(false);
-      
-      // Start next cycle after 3 seconds
-      setTimeout(() => {
-        setCycleCount(prev => prev + 1);
-        const newNoiseSeed = Math.floor(Math.random() * 1000) + 1;
-        const newNoiseDetail = 1.0 + Math.random() * 5.0;
-        setNoiseSeed(newNoiseSeed);
-        setNoiseDetail(newNoiseDetail);
-        const { start, end, distance } = generateRandomPoints();
-        setPath([]);
-        setPathKeys(new Set());
-        setAnimationState(null);
-        setStartPoint(start);
-        setEndPoint(end);
-        const startKey = `${start.x},${start.y}`;
-        const endKey = `${end.x},${end.y}`;
-        const result = findShortestGraphPath(startKey, endKey, graphData.nodes, graphData.edges);
-        if (result.pathExists && result.path.length > 0) {
-          const pathAnimationSteps = result.path.map((nodeKey, index) => ({
-            type: 'pathProgress',
-            current: nodeKey,
-            currentPath: result.path.slice(0, index + 1),
-            completed: index === result.path.length - 1,
-            totalSteps: result.path.length
-          }));
-          setAnimationSteps(pathAnimationSteps);
-          setCurrentStep(0);
-          setIsAnimating(true);
-          setAnimationState({
-            active: true,
-            current: pathAnimationSteps[0].current,
-            lastNode: null,
-            currentPath: pathAnimationSteps[0].currentPath || [pathAnimationSteps[0].current],
-            completed: pathAnimationSteps[0].completed
-          });
-        } else {
-          setTimeout(autoCycle, 100);
-        }
-      }, 3000);
-    } else if (isLastStep) {
-      // Progress immediately to final step
-      progressToNextStep();
-    } else {
-      // Normal timing for all other steps
-      const timer = setTimeout(progressToNextStep, animationSpeed);
-      return () => clearTimeout(timer);
-    }
-  }, [isAnimating, currentStep, animationSteps, animationSpeed, generateRandomPoints, graphData, cycleCount]);
+    // Ultra-smooth animation using requestAnimationFrame
+    let animationId;
+    
+    const smoothAnimate = (currentTime) => {
+      if (currentTime - lastAnimationTime.current >= animationSpeed) {
+        lastAnimationTime.current = currentTime;
+        progressToNextStep();
+      } else {
+        // Continue animation loop
+        animationId = requestAnimationFrame(smoothAnimate);
+      }
+    };
+    
+    // Start the smooth animation
+    animationId = requestAnimationFrame(smoothAnimate);
+    
+    return () => {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+    };
+  }, [isAnimating, currentStep, animationSpeed, startNewCycle]);
 
   // Calculate grid dimensions for lighting positioning
   const totalSizeForLightingWidth = (gridWidth - 1) * skip;
   const totalSizeForLightingHeight = (gridHeight - 1) * skip;
   const halfSizeForLightingWidth = totalSizeForLightingWidth / 2;
   const halfSizeForLightingHeight = totalSizeForLightingHeight / 2;
-
-  // Shared function to get node colors for both visualization and lighting
-  const getNodeColor = useCallback((nodeKey) => {
-    const [x, y] = nodeKey.split(',').map(Number);
-    
-    // Check if this node is the start point - bright green emissive
-    if (startPoint && x === startPoint.x && y === startPoint.y) {
-      return { color: '#00ff00', emissive: '#00ff00', emissiveIntensity: 1.0 };
-    }
-    
-    // Check if this node is the end point - bright red emissive
-    if (endPoint && x === endPoint.x && y === endPoint.y) {
-      return { color: '#ff0000', emissive: '#ff0000', emissiveIntensity: 1.0 };
-    }
-    
-    // Animation states (only if animation is active)
-    if (animationState && animationState.active) {
-      // Current node being traversed - bright purple emissive
-      if (animationState.current === nodeKey) {
-        return { color: '#aa00ff', emissive: '#aa00ff', emissiveIntensity: 1.5 };
-      }
-      
-      // Path nodes already traversed - cyan emissive
-      if (animationState.currentPath && animationState.currentPath.includes(nodeKey)) {
-        return { color: '#00ffff', emissive: '#00ffff', emissiveIntensity: 1.2 };
-      }
-    } else {
-      // Static mode - show final path with yellow emissive
-      if (pathKeys && pathKeys.has(nodeKey)) {
-        return { color: '#ffff00', emissive: '#ffff00', emissiveIntensity: 1.2 };
-      }
-    }
-    
-    // Default terrain cubes - grayscale based on weight, no emissive
-    const node = graphData.nodes.get(nodeKey);
-    const weight = node ? node.weight : 1;
-    
-    // Map weight to grayscale (easy terrain = white, difficult = black)
-    const minWeight = 0.1;
-    const maxWeight = 25.0;
-    const normalizedWeight = Math.max(0, Math.min(1, (weight - minWeight) / (maxWeight - minWeight)));
-    
-    // Invert so low weight = light color, high weight = dark color
-    const grayValue = Math.floor(255 * (1 - normalizedWeight));
-    const grayColor = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
-    
-    return { 
-      color: grayColor,
-      emissive: '#000000',
-      emissiveIntensity: 0
-    };
-  }, [startPoint, endPoint, pathKeys, graphData.nodes, animationState]);
 
   return (
     <div className="Canvas-Container">
@@ -906,7 +839,7 @@ export default function App() {
           />
         )}
 
-        {/* Progressive path illumination - optimized for performance */}
+        {/* Progressive path illumination - every third node during animation */}
         {animationState?.currentPath?.filter((_, index) => index % 3 === 0 || index === animationState.currentPath.length - 1).map((nodeKey, index) => {
           const node = graphData.nodes.get(nodeKey);
           if (!node) return null;
@@ -916,8 +849,8 @@ export default function App() {
           const isEnd = endPoint && node.x === endPoint.x && node.y === endPoint.y;
           if (isStart || isEnd) return null;
           
-          // Progressive lighting - fewer lights for better performance
-          const intensity = 1.5 + index * 0.5; // Simpler calculation
+          // Progressive lighting - every other node with consistent intensity
+          const intensity = 2.8;
           
           return (
             <pointLight
@@ -935,7 +868,7 @@ export default function App() {
           );
         })}
 
-        {/* Completed path illumination - bright lights during 3-second pause */}
+        {/* Completed path illumination - all nodes with gradual brightness buildup */}
         {!isAnimating && path.length > 0 && pathKeys.size > 0 && path.map((nodeKey, index) => {
           const node = graphData.nodes.get(nodeKey);
           if (!node) return null;
@@ -945,11 +878,26 @@ export default function App() {
           const isEnd = endPoint && node.x === endPoint.x && node.y === endPoint.y;
           if (isStart || isEnd) return null;
           
-          // Skip some nodes for performance but ensure complete coverage
-          if (index % 2 !== 0 && index !== path.length - 1) return null;
+          // Gradual brightness buildup over 3 seconds
+          const completionDuration = 3000; // 3 seconds
+          const currentTime = Date.now();
+          const cycleDuration = currentTime % (completionDuration + 500); // Add buffer for cycle timing
+          const buildupProgress = Math.min(1.0, cycleDuration / completionDuration); // 0 to 1 over 3 seconds
           
-          // Bright completion lighting with yellow/golden color
-          const intensity = 4.0 + Math.sin(Date.now() * 0.01 + index * 0.5) * 1.0; // Pulsing effect
+          // Smooth easing function for more natural buildup
+          const easedProgress = buildupProgress * buildupProgress * (3 - 2 * buildupProgress); // Smooth step
+          
+          // Path gradient: darker at start, brighter toward end
+          const pathProgress = index / (path.length - 1); // 0 to 1
+          
+          // Gradually build from drawing intensity (2.8) to final gradient (2.0 to 5.0)
+          const startIntensity = 2.8; // Same as drawing phase
+          const targetBaseIntensity = 2.0 + (pathProgress * 3.0); // Final gradient target
+          const currentBaseIntensity = startIntensity + (targetBaseIntensity - startIntensity) * easedProgress;
+          
+          // Add gentle pulsing effect that grows with the buildup
+          const pulseEffect = Math.sin(Date.now() * 0.008 + index * 0.2) * (0.5 * easedProgress);
+          const intensity = currentBaseIntensity + pulseEffect;
           
           return (
             <pointLight
@@ -960,9 +908,9 @@ export default function App() {
                 4.0
               ]}
               intensity={intensity}
-              distance={12}
-              decay={1.5}
-              color="#ffffff" // White to match normal path lighting
+              distance={10}
+              decay={1.8}
+              color="#ffffff" // White light to illuminate the terrain
             />
           );
         })}
@@ -976,9 +924,10 @@ export default function App() {
           pathKeys={pathKeys}
           graphData={graphData}
           animationState={animationState}
-          getNodeColor={getNodeColor}
           gridWidth={gridWidth}
           gridHeight={gridHeight}
+          isAnimating={isAnimating}
+          path={path}
         />
       </Canvas>
 
