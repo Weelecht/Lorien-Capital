@@ -421,7 +421,7 @@ export default function App() {
   const [animationSteps, setAnimationSteps] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [animationSpeed, setAnimationSpeed] = useState(100); // Optimized speed for better performance
+  const [animationSpeed, setAnimationSpeed] = useState(10); // Very fast animation speed
   const [animationState, setAnimationState] = useState(null);
   const [cycleCount, setCycleCount] = useState(0); // Track cycle number
   
@@ -732,99 +732,6 @@ export default function App() {
 
   return (
     <div className="Canvas-Container">
-      {/* Automatic Pathfinding Demo Controls */}
-      {animationSteps.length > 0 && (
-        <div style={{ 
-          position: 'absolute', 
-          top: 8, 
-          left: 8, 
-          zIndex: 1000, 
-          background: 'rgba(255,255,255,0.95)', 
-          padding: '8px',
-          borderRadius: '6px',
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '11px',
-          minWidth: '200px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-        }}>
-          <h4 style={{ margin: '0 0 6px 0', fontSize: '12px', fontWeight: 'bold' }}>Automatic A* Demo</h4>
-          <div style={{ marginBottom: '6px' }}>
-            <button 
-              onClick={() => setIsAnimating(true)} 
-              disabled={isAnimating}
-              style={{ marginRight: '3px', padding: '2px 6px', fontSize: '10px' }}
-            >
-              Resume
-            </button>
-            <button 
-              onClick={() => setIsAnimating(false)} 
-              disabled={!isAnimating}
-              style={{ marginRight: '3px', padding: '2px 6px', fontSize: '10px' }}
-            >
-              Pause
-            </button>
-          </div>
-          <div style={{ marginBottom: '5px' }}>
-            <label style={{ display: 'block', marginBottom: '1px', fontSize: '10px' }}>Speed:</label>
-            <input 
-              type="range" 
-              min="1" 
-              max="200" 
-              value={animationSpeed}
-              onChange={(e) => setAnimationSpeed(Number(e.target.value))}
-              style={{ width: '120px', height: '16px' }}
-            />
-            <span style={{ marginLeft: '4px', fontSize: '9px' }}>
-              {animationSpeed}ms
-            </span>
-          </div>
-          {startPoint && endPoint && (
-            <div style={{ fontSize: '9px', color: '#666', marginBottom: '4px' }}>
-              <div>Start: ({startPoint.x}, {startPoint.y})</div>
-              <div>End: ({endPoint.x}, {endPoint.y})</div>
-              <div>Distance: {calculateDistance(startPoint.x, startPoint.y, endPoint.x, endPoint.y)} nodes</div>
-            </div>
-          )}
-          {animationSteps.length > 0 && (
-            <div style={{ fontSize: '9px', color: '#666', marginTop: '4px' }}>
-              <div style={{ marginBottom: '2px' }}>Progress: {currentStep + 1} / {animationSteps.length}</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
-                <span><span style={{color: 'green'}}>●</span>Start</span>
-                <span><span style={{color: 'red'}}>●</span>End</span>
-                <span><span style={{color: '#aa00ff'}}>●</span>Current</span>
-                <span><span style={{color: 'cyan'}}>●</span>Traversed</span>
-                <span><span style={{color: 'yellow'}}>●</span>Complete</span>
-              </div>
-              <div style={{ fontSize: '8px', color: '#999', marginTop: '2px' }}>
-                Auto-cycling every path completion...
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Loading message when no animation yet */}
-      {animationSteps.length === 0 && (
-        <div style={{ 
-          position: 'absolute', 
-          top: 8, 
-          left: 8, 
-          zIndex: 1000, 
-          background: 'rgba(255,255,255,0.95)', 
-          padding: '8px',
-          borderRadius: '6px',
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '11px',
-          minWidth: '200px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-        }}>
-          <h4 style={{ margin: '0 0 6px 0', fontSize: '12px', fontWeight: 'bold' }}>Initializing A* Demo</h4>
-          <div style={{ fontSize: '9px', color: '#666' }}>
-            Generating random start/end points...
-          </div>
-        </div>
-      )}
-
       <Canvas
         style={{ 
           backgroundColor: 'black',
