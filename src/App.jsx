@@ -23,7 +23,7 @@ const FollowTarget = ({ target }) => {
   return null;
 };
 
-const GraphVisualization = ({ position, onNodeClick, startPoint, endPoint, pathKeys, graphData, animationState }) => {
+const GraphVisualization = ({ position, onNodeClick, startPoint, endPoint, pathKeys, graphData, animationState, getNodeColor }) => {
   const meshRefs = useRef([]);
   const skip = 2;
 
@@ -40,57 +40,6 @@ const GraphVisualization = ({ position, onNodeClick, startPoint, endPoint, pathK
     roughness: 0.9,
     metalness: 0.0,
   }), []);
-
-  const getNodeColor = useCallback((nodeKey) => {
-    const [x, y] = nodeKey.split(',').map(Number);
-    
-    // Check if this node is the start point - bright green emissive
-    if (startPoint && x === startPoint.x && y === startPoint.y) {
-      return { color: '#00ff00', emissive: '#003300', emissiveIntensity: 0.5 };
-    }
-    
-    // Check if this node is the end point - bright red emissive
-    if (endPoint && x === endPoint.x && y === endPoint.y) {
-      return { color: '#ff0000', emissive: '#330000', emissiveIntensity: 0.5 };
-    }
-    
-    // Animation states (only if animation is active)
-    if (animationState && animationState.active) {
-      // Current node being traversed - bright purple emissive
-      if (animationState.current === nodeKey) {
-        return { color: '#aa00ff', emissive: '#6600aa', emissiveIntensity: 0.8 };
-      }
-      
-      // Path nodes already traversed - cyan emissive
-      if (animationState.currentPath && animationState.currentPath.includes(nodeKey)) {
-        return { color: '#00ffff', emissive: '#00aaaa', emissiveIntensity: 0.8 };
-      }
-    } else {
-      // Static mode - show final path with yellow emissive
-      if (pathKeys && pathKeys.has(nodeKey)) {
-        return { color: '#ffff00', emissive: '#aaaa00', emissiveIntensity: 0.8 };
-      }
-    }
-    
-    // Default terrain cubes - grayscale based on weight, no emissive
-    const node = nodes.get(nodeKey);
-    const weight = node ? node.weight : 1;
-    
-    // Map weight to grayscale (easy terrain = white, difficult = black)
-    const minWeight = 0.1;
-    const maxWeight = 25.0;
-    const normalizedWeight = Math.max(0, Math.min(1, (weight - minWeight) / (maxWeight - minWeight)));
-    
-    // Invert so low weight = light color, high weight = dark color
-    const grayValue = Math.floor(255 * (1 - normalizedWeight));
-    const grayColor = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
-    
-    return { 
-      color: grayColor,
-      emissive: '#000000',
-      emissiveIntensity: 0
-    };
-  }, [startPoint, endPoint, pathKeys, nodes, animationState]);
 
   const getNodeSize = useCallback((nodeKey) => {
     const node = nodes.get(nodeKey);
@@ -540,19 +489,19 @@ export default function App() {
           setPath(step.pathSoFar);
           setIsAnimating(false);
           
-          // Randomize terrain for next cycle - only when path is fully completed
-          const newNoiseSeed = Math.floor(Math.random() * 1000) + 1;
-          const newNoiseDetail = 2.0 + Math.random() * 4.0; // Range: 2.0 to 6.0 for more complex terrain
-          
-          console.log(`🌍 Terrain randomized - Seed: ${newNoiseSeed}, Detail: ${newNoiseDetail.toFixed(2)}`);
-          
-          setNoiseSeed(newNoiseSeed);
-          setNoiseDetail(newNoiseDetail);
-          
-          // Wait 3 seconds then start next cycle
+          // Wait 3 seconds then start next cycle (terrain will change when new points are set)
           setTimeout(() => {
             // Increment cycle count
             setCycleCount(prev => prev + 1);
+            
+            // Randomize terrain ONLY when generating new start/end points
+            const newNoiseSeed = Math.floor(Math.random() * 1000) + 1;
+            const newNoiseDetail = 2.0 + Math.random() * 4.0; // Range: 2.0 to 6.0 for more complex terrain
+            
+            console.log(`🌍 Terrain randomized - Seed: ${newNoiseSeed}, Detail: ${newNoiseDetail.toFixed(2)}`);
+            
+            setNoiseSeed(newNoiseSeed);
+            setNoiseDetail(newNoiseDetail);
             
             const { start, end, distance } = generateRandomPoints();
             
@@ -621,6 +570,58 @@ export default function App() {
   // Calculate grid dimensions for lighting positioning
   const totalSizeForLighting = (gridSize - 1) * skip;
   const halfSizeForLighting = totalSizeForLighting / 2;
+
+  // Shared function to get node colors for both visualization and lighting
+  const getNodeColor = useCallback((nodeKey) => {
+    const [x, y] = nodeKey.split(',').map(Number);
+    
+    // Check if this node is the start point - bright green emissive
+    if (startPoint && x === startPoint.x && y === startPoint.y) {
+      return { color: '#00ff00', emissive: '#003300', emissiveIntensity: 0.5 };
+    }
+    
+    // Check if this node is the end point - bright red emissive
+    if (endPoint && x === endPoint.x && y === endPoint.y) {
+      return { color: '#ff0000', emissive: '#330000', emissiveIntensity: 0.5 };
+    }
+    
+    // Animation states (only if animation is active)
+    if (animationState && animationState.active) {
+      // Current node being traversed - bright purple emissive
+      if (animationState.current === nodeKey) {
+        return { color: '#aa00ff', emissive: '#6600aa', emissiveIntensity: 0.8 };
+      }
+      
+      // Path nodes already traversed - cyan emissive
+      if (animationState.currentPath && animationState.currentPath.includes(nodeKey)) {
+        return { color: '#00ffff', emissive: '#00aaaa', emissiveIntensity: 0.8 };
+      }
+    } else {
+      // Static mode - show final path with yellow emissive
+      if (pathKeys && pathKeys.has(nodeKey)) {
+        return { color: '#ffff00', emissive: '#aaaa00', emissiveIntensity: 0.8 };
+      }
+    }
+    
+    // Default terrain cubes - grayscale based on weight, no emissive
+    const node = graphData.nodes.get(nodeKey);
+    const weight = node ? node.weight : 1;
+    
+    // Map weight to grayscale (easy terrain = white, difficult = black)
+    const minWeight = 0.1;
+    const maxWeight = 25.0;
+    const normalizedWeight = Math.max(0, Math.min(1, (weight - minWeight) / (maxWeight - minWeight)));
+    
+    // Invert so low weight = light color, high weight = dark color
+    const grayValue = Math.floor(255 * (1 - normalizedWeight));
+    const grayColor = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
+    
+    return { 
+      color: grayColor,
+      emissive: '#000000',
+      emissiveIntensity: 0
+    };
+  }, [startPoint, endPoint, pathKeys, graphData.nodes, animationState]);
 
   return (
     <div className="Canvas-Container">
@@ -823,56 +824,30 @@ export default function App() {
           />
         )}
 
-        {/* Optimized path lights - restore trail while maintaining performance */}
+        {/* Progressive path illumination - simple white lights placed as route progresses */}
         {animationState && animationState.currentPath && animationState.currentPath.length > 0 && (() => {
-          const maxLights = 12; // Increased from 8 to 12 for better trail
-          const currentPath = animationState.currentPath;
-          const currentIndex = currentPath.length - 1;
-          
-          // Create sliding window of recent nodes
-          const startIndex = Math.max(0, currentIndex - maxLights + 1);
-          const recentNodes = currentPath.slice(startIndex, currentIndex + 1);
-          
-          return recentNodes.map((nodeKey, index) => {
+          return animationState.currentPath.map((nodeKey, index) => {
             const node = graphData.nodes.get(nodeKey);
             if (!node) return null;
             
-            // Skip start and end points as they have their own lights
+            // Skip start and end points as they have their own dedicated lights
             const isStart = startPoint && node.x === startPoint.x && node.y === startPoint.y;
             const isEnd = endPoint && node.x === endPoint.x && node.y === endPoint.y;
             if (isStart || isEnd) return null;
             
-            const isCurrentNode = nodeKey === animationState.current;
-            const nodeAge = recentNodes.length - 1 - index; // 0 = current, higher = older
-            
-            // Render trail lights for more nodes (up to 8-10 recent nodes)
-            if (nodeAge > 8) return null;
-            
-            // Intensity fades with age for nice trail effect
-            let lightIntensity;
-            let lightColor;
-            
-            if (isCurrentNode) {
-              lightIntensity = 2.5; // Brightest for current
-              lightColor = "#aa00ff"; // Purple for current
-            } else {
-              // Gradual fade for trail effect
-              lightIntensity = Math.max(0.3, 2.0 - (nodeAge * 0.2));
-              lightColor = "#00ffff"; // Cyan for trail
-            }
-            
+            // Simple white light for all path nodes
             return (
               <pointLight
-                key={`optimizedPathLight-${nodeKey}-${index}`}
+                key={`progressiveLight-${nodeKey}`}
                 position={[
                   node.x * skip - halfSizeForLighting,
                   node.y * skip - halfSizeForLighting,
-                  2
+                  3.0 // Higher up for better visibility
                 ]}
-                intensity={lightIntensity}
-                distance={isCurrentNode ? 7 : 5}
-                decay={2}
-                color={lightColor}
+                intensity={2.5}
+                distance={8}
+                decay={1.5}
+                color="#ffffff" // White light for all path nodes
               />
             );
           });
@@ -888,6 +863,7 @@ export default function App() {
           pathKeys={pathKeys}
           graphData={graphData}
           animationState={animationState}
+          getNodeColor={getNodeColor}
         />
       </Canvas>
 
