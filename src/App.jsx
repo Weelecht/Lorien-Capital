@@ -408,7 +408,7 @@ export default function App() {
 
   // Generate graph structure for rectangular grid
   const [noiseSeed, setNoiseSeed] = useState(42);
-  const [noiseDetail, setNoiseDetail] = useState(4.0); // Increased default for more detailed terrain
+  const [noiseDetail, setNoiseDetail] = useState(1.0 + Math.random() * 5.0); // Random initial detail: 1.0 to 6.0
   const graphData = useMemo(() => generateGraphStructure(gridWidth, gridHeight, noiseSeed, noiseDetail), [gridWidth, gridHeight, noiseSeed, noiseDetail]);
 
   // Pathfinding state
@@ -421,7 +421,7 @@ export default function App() {
   const [animationSteps, setAnimationSteps] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [animationSpeed, setAnimationSpeed] = useState(10); // Very fast animation speed
+  const [animationSpeed, setAnimationSpeed] = useState(1); // Maximum speed - 1ms
   const [animationState, setAnimationState] = useState(null);
   const [cycleCount, setCycleCount] = useState(0); // Track cycle number
   
@@ -586,36 +586,37 @@ export default function App() {
   useEffect(() => {
     if (!isAnimating || animationSteps.length === 0) return;
 
-    const timer = setTimeout(() => {
-      const nextStepIndex = currentStep + 1;
-      
+    const nextStepIndex = currentStep + 1;
+    const isSecondToLast = nextStepIndex === animationSteps.length - 2;
+    const isLastStep = nextStepIndex === animationSteps.length - 1;
+    
+    const progressToNextStep = () => {
       if (nextStepIndex < animationSteps.length) {
-        setCurrentStep(nextStepIndex);
-        
         const step = animationSteps[nextStepIndex];
         
-        setAnimationState({
-          active: true,
-          current: step.current,
-          lastNode: animationSteps[currentStep].current,
-          currentPath: step.currentPath || [step.current],
-          completed: step.completed
-        });
-
-        // Check for completion immediately when reaching final step
+        // If this is the completion step, handle everything immediately
         if (step.completed) {
+          // Set all completion states immediately together
+          setCurrentStep(nextStepIndex);
+          setAnimationState({
+            active: true,
+            current: step.current,
+            lastNode: animationSteps[currentStep].current,
+            currentPath: step.currentPath || [step.current],
+            completed: true
+          });
           setPathKeys(new Set(step.currentPath || []));
           setPath(step.currentPath || []);
           setIsAnimating(false);
           
-          // Wait 3 seconds then start next cycle (terrain will change when new points are set)
+          // Start next cycle after 3 seconds
           setTimeout(() => {
             // Increment cycle count
             setCycleCount(prev => prev + 1);
             
             // Randomize terrain ONLY when generating new start/end points
             const newNoiseSeed = Math.floor(Math.random() * 1000) + 1;
-            const newNoiseDetail = 2.0 + Math.random() * 4.0; // Range: 2.0 to 6.0 for more complex terrain
+            const newNoiseDetail = 1.0 + Math.random() * 5.0; // Range: 1.0 to 6.0 for more complex terrain
             
             setNoiseSeed(newNoiseSeed);
             setNoiseDetail(newNoiseDetail);
@@ -664,14 +665,85 @@ export default function App() {
               setTimeout(autoCycle, 100);
             }
           }, 3000);
+        } else {
+          // Normal animation step
+          setCurrentStep(nextStepIndex);
+          setAnimationState({
+            active: true,
+            current: step.current,
+            lastNode: animationSteps[currentStep].current,
+            currentPath: step.currentPath || [step.current],
+            completed: step.completed
+          });
         }
       } else {
         // Animation is complete
         setIsAnimating(false);
       }
-    }, animationSpeed);
+    };
 
-    return () => clearTimeout(timer);
+    // Special handling: if we're second-to-last, skip directly to completion
+    if (isSecondToLast && animationSteps.length > 2) {
+      // Jump directly to the final completion step
+      const finalStep = animationSteps[animationSteps.length - 1];
+      setCurrentStep(animationSteps.length - 1);
+      setAnimationState({
+        active: true,
+        current: finalStep.current,
+        lastNode: animationSteps[currentStep].current,
+        currentPath: finalStep.currentPath || [finalStep.current],
+        completed: true
+      });
+      setPathKeys(new Set(finalStep.currentPath || []));
+      setPath(finalStep.currentPath || []);
+      setIsAnimating(false);
+      
+      // Start next cycle after 3 seconds
+      setTimeout(() => {
+        setCycleCount(prev => prev + 1);
+        const newNoiseSeed = Math.floor(Math.random() * 1000) + 1;
+        const newNoiseDetail = 1.0 + Math.random() * 5.0;
+        setNoiseSeed(newNoiseSeed);
+        setNoiseDetail(newNoiseDetail);
+        const { start, end, distance } = generateRandomPoints();
+        setPath([]);
+        setPathKeys(new Set());
+        setAnimationState(null);
+        setStartPoint(start);
+        setEndPoint(end);
+        const startKey = `${start.x},${start.y}`;
+        const endKey = `${end.x},${end.y}`;
+        const result = findShortestGraphPath(startKey, endKey, graphData.nodes, graphData.edges);
+        if (result.pathExists && result.path.length > 0) {
+          const pathAnimationSteps = result.path.map((nodeKey, index) => ({
+            type: 'pathProgress',
+            current: nodeKey,
+            currentPath: result.path.slice(0, index + 1),
+            completed: index === result.path.length - 1,
+            totalSteps: result.path.length
+          }));
+          setAnimationSteps(pathAnimationSteps);
+          setCurrentStep(0);
+          setIsAnimating(true);
+          setAnimationState({
+            active: true,
+            current: pathAnimationSteps[0].current,
+            lastNode: null,
+            currentPath: pathAnimationSteps[0].currentPath || [pathAnimationSteps[0].current],
+            completed: pathAnimationSteps[0].completed
+          });
+        } else {
+          setTimeout(autoCycle, 100);
+        }
+      }, 3000);
+    } else if (isLastStep) {
+      // Progress immediately to final step
+      progressToNextStep();
+    } else {
+      // Normal timing for all other steps
+      const timer = setTimeout(progressToNextStep, animationSpeed);
+      return () => clearTimeout(timer);
+    }
   }, [isAnimating, currentStep, animationSteps, animationSpeed, generateRandomPoints, graphData, cycleCount]);
 
   // Calculate grid dimensions for lighting positioning
