@@ -5,7 +5,6 @@ import {
   Environment,
   GizmoHelper,
   GizmoViewport,
-  OrbitControls,
   AccumulativeShadows,
   RandomizedLight,
   Line
@@ -482,6 +481,7 @@ export default function App() {
   const [animationSpeed, setAnimationSpeed] = useState(8); // Increased to 125 FPS for ultra-smooth animation
   const [animationState, setAnimationState] = useState(null);
   const [cycleCount, setCycleCount] = useState(0); // Track cycle number
+  const [completionStartTime, setCompletionStartTime] = useState(null); // Track when completion phase starts
   
   // Track if initial cycle has started to prevent re-triggering
   const initialCycleStarted = useRef(false);
@@ -604,6 +604,7 @@ export default function App() {
     setPath([]);
     setPathKeys(new Set());
     setAnimationState(null);
+    setCompletionStartTime(null); // Reset completion timing
     
     // Set new points
     setStartPoint(start);
@@ -685,6 +686,7 @@ export default function App() {
         // If this was the final step, smoothly transition to completion after a brief delay
         if (step.completed) {
           setTimeout(() => {
+            setCompletionStartTime(Date.now()); // Mark when completion phase starts
             setAnimationState({
               active: false,
               current: step.current,
@@ -818,9 +820,9 @@ export default function App() {
               startPoint.y * skip - halfSizeForLightingHeight,
               2
             ]}
-            intensity={2.0}
-            distance={6}
-            decay={2}
+            intensity={6.0}
+            distance={12}
+            decay={1.5}
             color="#00ff00"
           />
         )}
@@ -832,9 +834,9 @@ export default function App() {
               endPoint.y * skip - halfSizeForLightingHeight,
               2
             ]}
-            intensity={2.0}
-            distance={6}
-            decay={2}
+            intensity={6.0}
+            distance={12}
+            decay={1.5}
             color="#ff0000"
           />
         )}
@@ -869,7 +871,7 @@ export default function App() {
         })}
 
         {/* Completed path illumination - all nodes with gradual brightness buildup */}
-        {!isAnimating && path.length > 0 && pathKeys.size > 0 && path.map((nodeKey, index) => {
+        {!isAnimating && path.length > 0 && pathKeys.size > 0 && completionStartTime && path.map((nodeKey, index) => {
           const node = graphData.nodes.get(nodeKey);
           if (!node) return null;
           
@@ -878,26 +880,36 @@ export default function App() {
           const isEnd = endPoint && node.x === endPoint.x && node.y === endPoint.y;
           if (isStart || isEnd) return null;
           
-          // Gradual brightness buildup over 3 seconds
+          // Gradual brightness buildup over 3 seconds from completion start
           const completionDuration = 3000; // 3 seconds
           const currentTime = Date.now();
-          const cycleDuration = currentTime % (completionDuration + 500); // Add buffer for cycle timing
-          const buildupProgress = Math.min(1.0, cycleDuration / completionDuration); // 0 to 1 over 3 seconds
+          const timeSinceCompletion = currentTime - completionStartTime;
+          const buildupProgress = Math.min(1.0, Math.max(0.0, timeSinceCompletion / completionDuration)); // 0 to 1 over 3 seconds
           
           // Smooth easing function for more natural buildup
           const easedProgress = buildupProgress * buildupProgress * (3 - 2 * buildupProgress); // Smooth step
           
+          // Determine if this node was lit during animation (every 3rd node + last node)
+          const wasLitDuringAnimation = (index % 3 === 0) || (index === path.length - 1);
+          
+          // Starting intensity: 2.8 if was lit during animation, 0 if not
+          const animationIntensity = wasLitDuringAnimation ? 2.8 : 0.0;
+          
           // Path gradient: darker at start, brighter toward end
           const pathProgress = index / (path.length - 1); // 0 to 1
           
-          // Gradually build from drawing intensity (2.8) to final gradient (2.0 to 5.0)
-          const startIntensity = 2.8; // Same as drawing phase
-          const targetBaseIntensity = 2.0 + (pathProgress * 3.0); // Final gradient target
-          const currentBaseIntensity = startIntensity + (targetBaseIntensity - startIntensity) * easedProgress;
+          // Final target intensity based on position in path
+          const targetBaseIntensity = 2.0 + (pathProgress * 3.0); // Final gradient target (2.0 to 5.0)
           
-          // Add gentle pulsing effect that grows with the buildup
-          const pulseEffect = Math.sin(Date.now() * 0.008 + index * 0.2) * (0.5 * easedProgress);
+          // Gradually build from animation intensity to target intensity
+          const currentBaseIntensity = animationIntensity + (targetBaseIntensity - animationIntensity) * easedProgress;
+          
+          // Add gentle pulsing effect that grows with the buildup (only for nodes that reach significant brightness)
+          const pulseEffect = Math.sin(currentTime * 0.008 + index * 0.2) * (0.3 * easedProgress * (currentBaseIntensity / 5.0));
           const intensity = currentBaseIntensity + pulseEffect;
+          
+          // Only render light if intensity is meaningful (avoid unnecessary lights)
+          if (intensity < 0.1) return null;
           
           return (
             <pointLight
@@ -914,8 +926,6 @@ export default function App() {
             />
           );
         })}
-
-        <OrbitControls />
 
         <GraphVisualization 
           position={[0, 0, 0]} 
