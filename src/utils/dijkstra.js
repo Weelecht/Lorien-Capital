@@ -156,17 +156,31 @@ class PerlinNoise {
 }
 
 // Generate graph structure with nodes, edges, and terrain weights
-export const generateGraphStructure = (gridSize, seed = 42, detail = 1.0) => {
+export const generateGraphStructure = (gridWidth, gridHeight = null, seed = 42, detail = 1.0) => {
+  // Handle backward compatibility - if gridHeight is not provided or is a number that should be seed
+  if (gridHeight === null || (typeof gridHeight === 'number' && gridHeight < 10)) {
+    // Old square grid format: generateGraphStructure(gridSize, seed, detail)
+    const gridSize = gridWidth;
+    gridHeight = gridSize;
+    gridWidth = gridSize;
+    if (typeof arguments[1] === 'number' && arguments[1] >= 1 && arguments[1] <= 1000) {
+      seed = arguments[1];
+    }
+    if (typeof arguments[2] === 'number') {
+      detail = arguments[2];
+    }
+  }
+
   const nodes = new Map();
   const edges = new Map();
   const perlin = new PerlinNoise(seed);
   
   // Enhanced cache key for consistent terrain generation
-  const cacheKey = `${gridSize}-${seed}-${detail.toFixed(1)}`;
+  const cacheKey = `${gridWidth}x${gridHeight}-${seed}-${detail.toFixed(1)}`;
   
-  // Create nodes with terrain weights
-  for (let x = 0; x < gridSize; x++) {
-    for (let y = 0; y < gridSize; y++) {
+  // Create nodes with terrain weights for rectangular grid
+  for (let x = 0; x < gridWidth; x++) {
+    for (let y = 0; y < gridHeight; y++) {
       const nodeKey = `${x},${y}`;
       
       // Generate terrain weight using fractal noise
@@ -207,9 +221,9 @@ export const generateGraphStructure = (gridSize, seed = 42, detail = 1.0) => {
     }
   }
   
-  // Create edges (4-directional for performance)
-  for (let x = 0; x < gridSize; x++) {
-    for (let y = 0; y < gridSize; y++) {
+  // Create edges (4-directional for performance) for rectangular grid
+  for (let x = 0; x < gridWidth; x++) {
+    for (let y = 0; y < gridHeight; y++) {
       const nodeKey = `${x},${y}`;
       const connections = new Set();
       
@@ -225,7 +239,7 @@ export const generateGraphStructure = (gridSize, seed = 42, detail = 1.0) => {
         const newX = x + dx;
         const newY = y + dy;
         
-        if (newX >= 0 && newX < gridSize && newY >= 0 && newY < gridSize) {
+        if (newX >= 0 && newX < gridWidth && newY >= 0 && newY < gridHeight) {
           const neighborKey = `${newX},${newY}`;
           connections.add(neighborKey);
         }
@@ -253,7 +267,12 @@ export const dijkstraGraph = (startKey, endKey, nodes, edges) => {
   // Manhattan distance heuristic function
   const manhattanDistance = (nodeKey) => {
     const node = nodes.get(nodeKey);
-    return Math.abs(node.x - endNode.x) + Math.abs(node.y - endNode.y);
+    const distance = Math.abs(node.x - endNode.x) + Math.abs(node.y - endNode.y);
+    
+    // Make heuristic more conservative to give terrain weights more influence
+    // This prevents the algorithm from being too aggressive about straight lines
+    // and makes it more likely to consider terrain difficulty
+    return distance * 0.8; // Reduced from 1.0 to make weights more influential
   };
   
   // Initialize costs
@@ -331,7 +350,12 @@ export const dijkstraGraphAnimated = (startKey, endKey, nodes, edges) => {
   // Manhattan distance heuristic function
   const manhattanDistance = (nodeKey) => {
     const node = nodes.get(nodeKey);
-    return Math.abs(node.x - endNode.x) + Math.abs(node.y - endNode.y);
+    const distance = Math.abs(node.x - endNode.x) + Math.abs(node.y - endNode.y);
+    
+    // Make heuristic more conservative to give terrain weights more influence
+    // This prevents the algorithm from being too aggressive about straight lines
+    // and makes it more likely to consider terrain difficulty
+    return distance * 0.8; // Reduced from 1.0 to make weights more influential
   };
   
   // Initialize costs

@@ -23,23 +23,62 @@ const FollowTarget = ({ target }) => {
   return null;
 };
 
-const GraphVisualization = ({ position, onNodeClick, startPoint, endPoint, pathKeys, graphData, animationState, getNodeColor }) => {
+// Responsive camera component that adjusts to window size
+const ResponsiveCamera = ({ target = [0, 0, 0], gridWidth, gridHeight }) => {
+  const { camera, size } = useThree();
+  
+  useEffect(() => {
+    // Calculate optimal camera distance to fit grid in viewport
+    const aspectRatio = size.width / size.height;
+    
+    // Calculate the grid's actual world size
+    const skip = 2;
+    const worldWidth = (gridWidth - 1) * skip;
+    const worldHeight = (gridHeight - 1) * skip;
+    
+    // Camera field of view
+    const fov = 60; // degrees
+    const fovRadians = (fov * Math.PI) / 180;
+    
+    // Calculate distance needed to fit the grid with some padding
+    const padding = 1.1; // 10% padding around the grid
+    
+    // Calculate distance for height constraint
+    const distanceForHeight = (worldHeight * padding) / (2 * Math.tan(fovRadians / 2));
+    
+    // Calculate distance for width constraint
+    const distanceForWidth = (worldWidth * padding) / (2 * Math.tan(fovRadians / 2) * aspectRatio);
+    
+    // Use the larger distance to ensure full grid is visible
+    let cameraDistance = Math.max(distanceForHeight, distanceForWidth);
+    
+    // Ensure reasonable distance bounds
+    cameraDistance = Math.max(20, Math.min(150, cameraDistance));
+    
+    // Update camera position
+    camera.position.set(0, 0, cameraDistance);
+    camera.lookAt(...target);
+    camera.updateProjectionMatrix();
+  }, [camera, size, target, gridWidth, gridHeight]);
+
+  useFrame(() => {
+    camera.lookAt(...target);
+  });
+
+  return null;
+};
+
+const GraphVisualization = ({ position, startPoint, endPoint, pathKeys, graphData, animationState, getNodeColor, gridWidth, gridHeight }) => {
   const meshRefs = useRef([]);
   const skip = 2;
 
   const { nodes, edges } = graphData;
 
-  // Calculate centering offset based on grid size - center at world origin
-  const gridSize = Math.ceil(Math.sqrt(Array.from(nodes.keys()).length));
-  const totalSize = (gridSize - 1) * skip;
-  const halfSize = totalSize / 2;
-
-  // Shared geometries and materials for performance
-  const sharedGeometry = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
-  const sharedMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    roughness: 0.9,
-    metalness: 0.0,
-  }), []);
+  // Calculate centering offset based on rectangular grid size - center at world origin
+  const totalSizeWidth = (gridWidth - 1) * skip;
+  const totalSizeHeight = (gridHeight - 1) * skip;
+  const halfSizeWidth = totalSizeWidth / 2;
+  const halfSizeHeight = totalSizeHeight / 2;
 
   const getNodeSize = useCallback((nodeKey) => {
     const node = nodes.get(nodeKey);
@@ -76,55 +115,6 @@ const GraphVisualization = ({ position, onNodeClick, startPoint, endPoint, pathK
     };
   }, [nodes]);
 
-  const handleNodeClick = useCallback((event, nodeKey) => {
-    event.stopPropagation();
-    const [x, y] = nodeKey.split(',').map(Number);
-    onNodeClick(x, y, nodeKey);
-  }, [onNodeClick]);
-
-  // Get edge color based on animation state
-  const getEdgeColor = useCallback((nodeKey1, nodeKey2) => {
-    if (!animationState || !animationState.active) {
-      // Static mode - show final path edges with bright yellow
-      if (pathKeys && pathKeys.has(nodeKey1) && pathKeys.has(nodeKey2)) {
-        const pathArray = Array.from(pathKeys);
-        const index1 = pathArray.indexOf(nodeKey1);
-        const index2 = pathArray.indexOf(nodeKey2);
-        if (Math.abs(index1 - index2) === 1) {
-          return { color: '#ffff00', opacity: 1.0, lineWidth: 3 };
-        }
-      }
-      return { color: '#333333', opacity: 0.3, lineWidth: 0.5 };
-    }
-
-    // Animation mode - only show current path progression
-    if (animationState.currentPath && animationState.currentPath.length > 1) {
-      const currentPathArray = animationState.currentPath;
-      
-      // Check if both nodes are in the current path and are consecutive
-      for (let i = 0; i < currentPathArray.length - 1; i++) {
-        const currentNode = currentPathArray[i];
-        const nextNode = currentPathArray[i + 1];
-        
-        if ((nodeKey1 === currentNode && nodeKey2 === nextNode) ||
-            (nodeKey1 === nextNode && nodeKey2 === currentNode)) {
-          return { color: '#00ffff', opacity: 1.0, lineWidth: 3.5 };
-        }
-      }
-    }
-
-    // Current traversal edge - bright purple
-    if (animationState.current && animationState.lastNode) {
-      if ((nodeKey1 === animationState.current && nodeKey2 === animationState.lastNode) ||
-          (nodeKey2 === animationState.current && nodeKey1 === animationState.lastNode)) {
-        return { color: '#aa00ff', opacity: 1.0, lineWidth: 2.5 };
-      }
-    }
-
-    // Default edge appearance - very dim
-    return { color: '#222222', opacity: 0.2, lineWidth: 0.5 };
-  }, [animationState, pathKeys]);
-
   // Create edge lines with dynamic styling - only show path edges for performance
   const edgeLines = useMemo(() => {
     const lines = [];
@@ -152,13 +142,13 @@ const GraphVisualization = ({ position, onNodeClick, startPoint, endPoint, pathK
       const endNodeSize = getNodeSize(nodeKey2);
       
       const startPos = [
-        node1.x * skip - halfSize + position[0],
-        node1.y * skip - halfSize + position[1],
+        node1.x * skip - halfSizeWidth + position[0],
+        node1.y * skip - halfSizeHeight + position[1],
         position[2] + startNodeSize.height / 2
       ];
       const endPos = [
-        node2.x * skip - halfSize + position[0],
-        node2.y * skip - halfSize + position[1],
+        node2.x * skip - halfSizeWidth + position[0],
+        node2.y * skip - halfSizeHeight + position[1],
         position[2] + endNodeSize.height / 2
       ];
 
@@ -172,7 +162,7 @@ const GraphVisualization = ({ position, onNodeClick, startPoint, endPoint, pathK
     }
     
     return lines;
-  }, [nodes, position, skip, halfSize, getNodeSize, animationState]);
+  }, [nodes, position, skip, halfSizeWidth, halfSizeHeight, getNodeSize, animationState]);
 
   return (
     <>
@@ -193,32 +183,30 @@ const GraphVisualization = ({ position, onNodeClick, startPoint, endPoint, pathK
         const nodeSize = getNodeSize(nodeKey);
         const nodeColor = getNodeColor(nodeKey);
         
-        // Only important nodes cast/receive shadows for performance
-        const isImportant = (startPoint && node.x === startPoint.x && node.y === startPoint.y) ||
-                           (endPoint && node.x === endPoint.x && node.y === endPoint.y) ||
-                           (animationState && animationState.current === nodeKey) ||
-                           (pathKeys && pathKeys.has(nodeKey));
+        // Only critical nodes cast/receive shadows for performance
+        const isCritical = (startPoint && node.x === startPoint.x && node.y === startPoint.y) ||
+                          (endPoint && node.x === endPoint.x && node.y === endPoint.y) ||
+                          (animationState && animationState.current === nodeKey);
         
         return (
           <mesh
             key={nodeKey}
             position={[
-              node.x * skip - halfSize + position[0],
-              node.y * skip - halfSize + position[1],
-              position[2] + nodeSize.height / 2 // Elevate mesh by half height to sit on ground
+              node.x * skip - halfSizeWidth + position[0],
+              node.y * skip - halfSizeHeight + position[1],
+              position[2] + nodeSize.height / 2
             ]}
-            onClick={(event) => handleNodeClick(event, nodeKey)}
             scale={[nodeSize.width, nodeSize.height, nodeSize.depth]}
+            castShadow={isCritical}
+            receiveShadow={isCritical}
           >
-            <primitive object={sharedGeometry} />
+            <boxGeometry args={[1, 1, 1]} />
             <meshStandardMaterial 
               color={nodeColor.color || nodeColor}
               emissive={nodeColor.emissive || '#000000'}
               emissiveIntensity={nodeColor.emissiveIntensity || 0}
               roughness={0.9}
               metalness={0.0}
-              receiveShadow={isImportant}
-              castShadow={isImportant}
             />
           </mesh>
         );
@@ -277,26 +265,76 @@ const FPSCounter = () => {
 };
 
 export default function App() {
-  // Performance-aware grid sizing
-  const getOptimalGridSize = () => {
-    // Reduced size for better performance (750 nodes = ~27x27 grid)
-    return 750; // Reduced from 1000 to improve FPS
+  // State to track window dimensions
+  const [windowSize, setWindowSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
+
+  // Calculate responsive grid dimensions based on viewport space (90% usage with 5% padding)
+  const getResponsiveGridDimensions = () => {
+    const aspectRatio = windowSize.width / windowSize.height;
+    
+    // Node spacing in world units
+  const skip = 2;
+    
+    // Camera settings
+    const fov = 60; // degrees
+    const fovRadians = (fov * Math.PI) / 180;
+    
+    // Calculate optimal camera distance based on desired grid coverage
+    // We want the grid to fill about 85% of the viewport
+    const viewportCoverage = 0.85;
+    
+    // Calculate world dimensions that would fill the viewport at different camera distances
+    // Start with a reasonable camera distance and work backwards
+    let cameraDistance = 60; // Base distance
+    
+    // Calculate visible world dimensions at this distance
+    const visibleHeight = 2 * Math.tan(fovRadians / 2) * cameraDistance * viewportCoverage;
+    const visibleWidth = visibleHeight * aspectRatio;
+    
+    // Calculate grid dimensions that fit in this visible area
+    let gridWidth = Math.floor(visibleWidth / skip);
+    let gridHeight = Math.floor(visibleHeight / skip);
+    
+    // Ensure minimum dimensions for pathfinding
+    gridWidth = Math.max(15, gridWidth);
+    gridHeight = Math.max(15, gridHeight);
+    
+    // Ensure maximum dimensions for performance
+    gridWidth = Math.min(50, gridWidth);
+    gridHeight = Math.min(50, gridHeight);
+    
+    // Adjust for aspect ratio - make grid more rectangular to match screen
+    if (aspectRatio > 1.5) {
+      // Wide screen - make grid wider
+      gridWidth = Math.min(60, Math.floor(gridWidth * 1.2));
+    } else if (aspectRatio < 0.8) {
+      // Tall screen - make grid taller
+      gridHeight = Math.min(60, Math.floor(gridHeight * 1.2));
+    }
+    
+    const totalNodes = gridWidth * gridHeight;
+    
+    return { gridWidth, gridHeight, totalNodes };
   };
 
-  // Updated logic for perfectly centered grid
-  const skip = 2;
-  const count = getOptimalGridSize(); // Performance-aware grid size
-  const gridSize = Math.ceil(Math.sqrt(count));
+  // Updated logic for responsive rectangular grid
+  const skip = 2; // Node spacing in world units
+  const { gridWidth, gridHeight, totalNodes } = getResponsiveGridDimensions();
   
   // Calculate perfect centering - grid should be centered at origin (0,0,0)
-  const totalSize = (gridSize - 1) * skip;
-  const halfSize = totalSize / 2;
+  const totalSizeWidth = (gridWidth - 1) * skip;
+  const totalSizeHeight = (gridHeight - 1) * skip;
+  const halfSizeWidth = totalSizeWidth / 2;
+  const halfSizeHeight = totalSizeHeight / 2;
   const gridCenter = [0, 0, 0]; // Grid center at world origin
 
-  // Generate graph structure instead of terrain weights
+  // Generate graph structure for rectangular grid
   const [noiseSeed, setNoiseSeed] = useState(42);
   const [noiseDetail, setNoiseDetail] = useState(4.0); // Increased default for more detailed terrain
-  const graphData = useMemo(() => generateGraphStructure(gridSize, noiseSeed, noiseDetail), [gridSize, noiseSeed, noiseDetail]);
+  const graphData = useMemo(() => generateGraphStructure(gridWidth, gridHeight, noiseSeed, noiseDetail), [gridWidth, gridHeight, noiseSeed, noiseDetail]);
 
   // Pathfinding state
   const [startPoint, setStartPoint] = useState(null);
@@ -315,6 +353,23 @@ export default function App() {
   // Track if initial cycle has started to prevent re-triggering
   const initialCycleStarted = useRef(false);
 
+  // Window resize handler for responsiveness
+  useEffect(() => {
+    const handleResize = () => {
+      // Update window size state
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+      
+      // Force React Three Fiber to recalculate on resize
+      window.dispatchEvent(new Event('resize'));
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Calculate Manhattan distance between two points
   const calculateDistance = useCallback((x1, y1, x2, y2) => {
     return Math.abs(x1 - x2) + Math.abs(y1 - y2);
@@ -329,20 +384,20 @@ export default function App() {
     const edgePoints = [];
     
     // Top edge
-    for (let x = 0; x < gridSize; x++) {
+    for (let x = 0; x < gridWidth; x++) {
       edgePoints.push({ x, y: 0 });
     }
     // Bottom edge
-    for (let x = 0; x < gridSize; x++) {
-      edgePoints.push({ x, y: gridSize - 1 });
+    for (let x = 0; x < gridWidth; x++) {
+      edgePoints.push({ x, y: gridHeight - 1 });
     }
     // Left edge (excluding corners already added)
-    for (let y = 1; y < gridSize - 1; y++) {
+    for (let y = 1; y < gridHeight - 1; y++) {
       edgePoints.push({ x: 0, y });
     }
     // Right edge (excluding corners already added)
-    for (let y = 1; y < gridSize - 1; y++) {
-      edgePoints.push({ x: gridSize - 1, y });
+    for (let y = 1; y < gridHeight - 1; y++) {
+      edgePoints.push({ x: gridWidth - 1, y });
     }
     
     // Try edge points first (80% chance), then fallback to any points
@@ -356,12 +411,12 @@ export default function App() {
       } else {
         // Fallback to any points
         startPoint = {
-          x: Math.floor(Math.random() * gridSize),
-          y: Math.floor(Math.random() * gridSize)
+          x: Math.floor(Math.random() * gridWidth),
+          y: Math.floor(Math.random() * gridHeight)
         };
         endPoint = {
-          x: Math.floor(Math.random() * gridSize),
-          y: Math.floor(Math.random() * gridSize)
+          x: Math.floor(Math.random() * gridWidth),
+          y: Math.floor(Math.random() * gridHeight)
         };
       }
       
@@ -379,9 +434,9 @@ export default function App() {
     // Final fallback: use opposite corners if no valid pair found
     const corners = [
       { x: 0, y: 0 },
-      { x: gridSize - 1, y: 0 },
-      { x: 0, y: gridSize - 1 },
-      { x: gridSize - 1, y: gridSize - 1 }
+      { x: gridWidth - 1, y: 0 },
+      { x: 0, y: gridHeight - 1 },
+      { x: gridWidth - 1, y: gridHeight - 1 }
     ];
     
     const startCorner = corners[0]; // Top-left
@@ -392,7 +447,7 @@ export default function App() {
       end: endCorner,
       distance: calculateDistance(startCorner.x, startCorner.y, endCorner.x, endCorner.y)
     };
-  }, [gridSize, calculateDistance]);
+  }, [gridWidth, gridHeight, calculateDistance]);
 
   // Auto-cycle effect - only run once to start first cycle
   useEffect(() => {
@@ -407,7 +462,6 @@ export default function App() {
       const { start, end, distance } = generateRandomPoints();
       
       setCycleCount(1);
-      console.log(`🎯 Cycle 1: Random path (${start.x}, ${start.y}) → (${end.x}, ${end.y}), Distance: ${distance} nodes`);
       
       // Set the new points
       setStartPoint(start);
@@ -441,18 +495,7 @@ export default function App() {
           currentPath: [],
           completed: false
         });
-        
-        console.log(`✅ A* found optimal path! Length: ${result.path.length} nodes, Cost: ${result.distance.toFixed(2)}`);
-        
-        // Debug: Show weight-to-size mapping examples
-        const sampleNodes = Array.from(graphData.nodes.entries()).slice(0, 5);
-        console.log('🔍 Weight-to-Size Mapping Examples:');
-        sampleNodes.forEach(([nodeKey, node]) => {
-          const nodeSize = getNodeSize(nodeKey);
-          console.log(`  Node ${nodeKey}: Weight ${node.weight.toFixed(2)} → Size ${nodeSize.width.toFixed(2)}x${nodeSize.height.toFixed(2)}`);
-        });
       } else {
-        console.log('❌ No path found, generating new random points...');
         // Try again immediately if no path found
         setTimeout(autoCycle, 100);
       }
@@ -498,14 +541,10 @@ export default function App() {
             const newNoiseSeed = Math.floor(Math.random() * 1000) + 1;
             const newNoiseDetail = 2.0 + Math.random() * 4.0; // Range: 2.0 to 6.0 for more complex terrain
             
-            console.log(`🌍 Terrain randomized - Seed: ${newNoiseSeed}, Detail: ${newNoiseDetail.toFixed(2)}`);
-            
             setNoiseSeed(newNoiseSeed);
             setNoiseDetail(newNoiseDetail);
             
             const { start, end, distance } = generateRandomPoints();
-            
-            console.log(`🎯 Cycle ${cycleCount + 1}: Random path (${start.x}, ${start.y}) → (${end.x}, ${end.y}), Distance: ${distance} nodes`);
             
             // Reset states
             setPath([]);
@@ -541,16 +580,9 @@ export default function App() {
                 currentPath: [],
                 completed: false
               });
-              
-              console.log(`✅ A* found optimal path! Length: ${result.path.length} nodes, Cost: ${result.distance.toFixed(2)}`);
             } else {
-              console.log('❌ No path found, generating new random points...');
-              // Try again with new points if no path found
-              setTimeout(() => {
-                const retryPoints = generateRandomPoints();
-                setStartPoint(retryPoints.start);
-                setEndPoint(retryPoints.end);
-              }, 100);
+              // Try again immediately if no path found
+              setTimeout(autoCycle, 100);
             }
           }, 3000);
         }
@@ -562,14 +594,11 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [isAnimating, currentStep, animationSteps, animationSpeed, generateRandomPoints, graphData, cycleCount]);
 
-  // Remove manual click handlers - now automated
-  const handleNodeClick = useCallback(() => {
-    // Disabled - automatic mode
-  }, []);
-
   // Calculate grid dimensions for lighting positioning
-  const totalSizeForLighting = (gridSize - 1) * skip;
-  const halfSizeForLighting = totalSizeForLighting / 2;
+  const totalSizeForLightingWidth = (gridWidth - 1) * skip;
+  const totalSizeForLightingHeight = (gridHeight - 1) * skip;
+  const halfSizeForLightingWidth = totalSizeForLightingWidth / 2;
+  const halfSizeForLightingHeight = totalSizeForLightingHeight / 2;
 
   // Shared function to get node colors for both visualization and lighting
   const getNodeColor = useCallback((nodeKey) => {
@@ -577,29 +606,29 @@ export default function App() {
     
     // Check if this node is the start point - bright green emissive
     if (startPoint && x === startPoint.x && y === startPoint.y) {
-      return { color: '#00ff00', emissive: '#003300', emissiveIntensity: 0.5 };
+      return { color: '#00ff00', emissive: '#00ff00', emissiveIntensity: 1.0 };
     }
     
     // Check if this node is the end point - bright red emissive
     if (endPoint && x === endPoint.x && y === endPoint.y) {
-      return { color: '#ff0000', emissive: '#330000', emissiveIntensity: 0.5 };
+      return { color: '#ff0000', emissive: '#ff0000', emissiveIntensity: 1.0 };
     }
     
     // Animation states (only if animation is active)
     if (animationState && animationState.active) {
       // Current node being traversed - bright purple emissive
       if (animationState.current === nodeKey) {
-        return { color: '#aa00ff', emissive: '#6600aa', emissiveIntensity: 0.8 };
+        return { color: '#aa00ff', emissive: '#aa00ff', emissiveIntensity: 1.5 };
       }
       
       // Path nodes already traversed - cyan emissive
       if (animationState.currentPath && animationState.currentPath.includes(nodeKey)) {
-        return { color: '#00ffff', emissive: '#00aaaa', emissiveIntensity: 0.8 };
+        return { color: '#00ffff', emissive: '#00ffff', emissiveIntensity: 1.2 };
       }
     } else {
       // Static mode - show final path with yellow emissive
       if (pathKeys && pathKeys.has(nodeKey)) {
-        return { color: '#ffff00', emissive: '#aaaa00', emissiveIntensity: 0.8 };
+        return { color: '#ffff00', emissive: '#ffff00', emissiveIntensity: 1.2 };
       }
     }
     
@@ -719,151 +748,144 @@ export default function App() {
       )}
 
       <Canvas
-        style={{ backgroundColor: 'black' }}
-        camera={{ position: [0, 0, 80], fov: 60 }}
+        style={{ 
+          backgroundColor: 'black',
+          display: 'block',
+          width: '100%',
+          height: '100%'
+        }}
+        camera={{ 
+          fov: 60,
+          position: [0, 0, 80],
+          near: 0.1,
+          far: 1000
+        }}
+        dpr={[1, 2]}
+        onCreated={({ gl }) => {
+          gl.setSize(window.innerWidth, window.innerHeight);
+        }}
       >
         {/* Make camera look at grid center */}
-        <FollowTarget target={[0, 0, 0]} />
+        <ResponsiveCamera target={[0, 0, 0]} gridWidth={gridWidth} gridHeight={gridHeight} />
 
         <GizmoHelper alignment="bottom-right" margin={[80, 80]}>
           <GizmoViewport />
         </GizmoHelper>
 
         {/* Very dark scene for fog of war effect */}
-        <ambientLight intensity={0.01} />
+        <ambientLight intensity={0.04} />
         <directionalLight 
           position={[20, 20, 10]} 
-          intensity={0.02} 
+          intensity={0.12} 
           color="#ffffff"
+          castShadow
         />
         
+        {/* Ground plane for shadows */}
+        <mesh
+          position={[0, 0, -1]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          receiveShadow
+        >
+          <planeGeometry args={[200, 200]} />
+          <meshStandardMaterial color="#111111" />
+        </mesh>
+        
         {/* Dynamic torch lighting - follows path direction */}
-        {animationState && animationState.currentPath && animationState.currentPath.length > 1 && (
-          (() => {
-            const currentIndex = animationState.currentPath.length - 1;
-            const currentNodeKey = animationState.currentPath[currentIndex];
-            const previousNodeKey = animationState.currentPath[currentIndex - 1];
-            
-            const currentNode = graphData.nodes.get(currentNodeKey);
-            const previousNode = graphData.nodes.get(previousNodeKey);
-            
-            if (!currentNode || !previousNode) return null;
-            
-            // Calculate movement direction
-            const directionX = currentNode.x - previousNode.x;
-            const directionY = currentNode.y - previousNode.y;
-            
-            // Normalize direction and create torch position slightly ahead
-            const length = Math.sqrt(directionX * directionX + directionY * directionY);
-            const normalizedX = length > 0 ? directionX / length : 0;
-            const normalizedY = length > 0 ? directionY / length : 1; // Default forward if no movement
-            
-            const torchX = currentNode.x * skip - halfSizeForLighting;
-            const torchY = currentNode.y * skip - halfSizeForLighting;
-            const torchZ = 4; // Higher up like holding a torch
-            
-            // Target position ahead in movement direction
-            const targetX = torchX + normalizedX * 3;
-            const targetY = torchY + normalizedY * 3;
-            const targetZ = 0;
-            
-            return (
-              <>
-                {/* Main torch spot light */}
-                <spotLight
-                  position={[torchX, torchY, torchZ]}
-                  target-position={[targetX, targetY, targetZ]}
-                  angle={Math.PI / 3} // 60 degree cone
-                  penumbra={0.3}
-                  intensity={8.0}
-                  distance={12}
-                  decay={1.5}
-                  color="#aa00ff" // Purple to match current head node
-                  castShadow
-                />
-                
-                {/* Ambient torch glow around current position */}
-                <pointLight
-                  position={[torchX, torchY, torchZ - 1]}
-                  intensity={2.0}
-                  distance={6}
-                  decay={2}
-                  color="#aa00ff" // Purple glow to match current head
-                />
-              </>
-            );
-          })()
-        )}
+        {animationState?.currentPath?.length > 1 && (() => {
+          const currentIndex = animationState.currentPath.length - 1;
+          const currentNodeKey = animationState.currentPath[currentIndex];
+          
+          const currentNode = graphData.nodes.get(currentNodeKey);
+          if (!currentNode) return null;
+          
+          const torchX = currentNode.x * skip - halfSizeForLightingWidth;
+          const torchY = currentNode.y * skip - halfSizeForLightingHeight;
+          const torchZ = 4;
+          
+          return (
+            <pointLight
+              key="torch"
+              position={[torchX, torchY, torchZ]}
+              intensity={8.0}
+              distance={15}
+              decay={2}
+              color="#aa00ff"
+            />
+          );
+        })()}
         
         {/* Start and end point lights */}
         {startPoint && (
           <pointLight
             position={[
-              startPoint.x * skip - halfSizeForLighting,
-              startPoint.y * skip - halfSizeForLighting,
+              startPoint.x * skip - halfSizeForLightingWidth,
+              startPoint.y * skip - halfSizeForLightingHeight,
               2
             ]}
-            intensity={1.5}
-            distance={5}
+            intensity={2.0}
+            distance={6}
             decay={2}
-            color="#00ff00" // Green to match start point
+            color="#00ff00"
           />
         )}
         
         {endPoint && (
           <pointLight
             position={[
-              endPoint.x * skip - halfSizeForLighting,
-              endPoint.y * skip - halfSizeForLighting,
+              endPoint.x * skip - halfSizeForLightingWidth,
+              endPoint.y * skip - halfSizeForLightingHeight,
               2
             ]}
-            intensity={1.5}
-            distance={5}
+            intensity={2.0}
+            distance={6}
             decay={2}
-            color="#ff0000" // Red to match end point
+            color="#ff0000"
           />
         )}
 
-        {/* Progressive path illumination - simple white lights placed as route progresses */}
-        {animationState && animationState.currentPath && animationState.currentPath.length > 0 && (() => {
-          return animationState.currentPath.map((nodeKey, index) => {
-            const node = graphData.nodes.get(nodeKey);
-            if (!node) return null;
-            
-            // Skip start and end points as they have their own dedicated lights
-            const isStart = startPoint && node.x === startPoint.x && node.y === startPoint.y;
-            const isEnd = endPoint && node.x === endPoint.x && node.y === endPoint.y;
-            if (isStart || isEnd) return null;
-            
-            // Simple white light for all path nodes
-            return (
-              <pointLight
-                key={`progressiveLight-${nodeKey}`}
-                position={[
-                  node.x * skip - halfSizeForLighting,
-                  node.y * skip - halfSizeForLighting,
-                  3.0 // Higher up for better visibility
-                ]}
-                intensity={2.5}
-                distance={8}
-                decay={1.5}
-                color="#ffffff" // White light for all path nodes
-              />
-            );
-          });
-        })()}
+        {/* Progressive path illumination - optimized with fewer lights */}
+        {animationState?.currentPath?.map((nodeKey, index) => {
+          const node = graphData.nodes.get(nodeKey);
+          if (!node) return null;
+          
+          // Skip start and end points
+          const isStart = startPoint && node.x === startPoint.x && node.y === startPoint.y;
+          const isEnd = endPoint && node.x === endPoint.x && node.y === endPoint.y;
+          if (isStart || isEnd) return null;
+          
+          // Progressive lighting - nodes further back in path get dimmer
+          const totalNodes = animationState.currentPath.length;
+          const intensity = 1.0 + (index / totalNodes) * 3.0; // Range: 1.0 to 4.0
+          
+          return (
+            <pointLight
+              key={`progressiveLight-${nodeKey}`}
+              position={[
+                node.x * skip - halfSizeForLightingWidth,
+                node.y * skip - halfSizeForLightingHeight,
+                3.0
+              ]}
+              intensity={intensity}
+              distance={12}
+              decay={2}
+              color="#ffffff"
+            />
+          );
+        })}
 
         <OrbitControls />
 
         <GraphVisualization 
           position={[0, 0, 0]} 
-          onNodeClick={handleNodeClick}
           startPoint={startPoint}
           endPoint={endPoint}
           pathKeys={pathKeys}
           graphData={graphData}
           animationState={animationState}
           getNodeColor={getNodeColor}
+          gridWidth={gridWidth}
+          gridHeight={gridHeight}
         />
       </Canvas>
 
