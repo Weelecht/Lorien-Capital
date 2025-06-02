@@ -252,7 +252,7 @@ export const generateGraphStructure = (gridWidth, gridHeight = null, seed = 42, 
   return { nodes, edges };
 };
 
-// A* algorithm for graph-based pathfinding
+// A* algorithm for graph-based pathfinding - optimized version
 export const dijkstraGraph = (startKey, endKey, nodes, edges) => {
   const gCost = new Map();
   const fCost = new Map();
@@ -275,8 +275,17 @@ export const dijkstraGraph = (startKey, endKey, nodes, edges) => {
     return distance * 0.8; // Reduced from 1.0 to make weights more influential
   };
   
-  // Initialize costs
+  // Initialize costs only for reachable nodes (optimization)
+  const maxDistance = Math.abs(startNode.x - endNode.x) + Math.abs(startNode.y - endNode.y);
+  const searchRadius = maxDistance * 1.5; // Limit search area for performance
+  
   for (const nodeKey of nodes.keys()) {
+    const node = nodes.get(nodeKey);
+    const distanceFromStart = Math.abs(node.x - startNode.x) + Math.abs(node.y - startNode.y);
+    
+    // Skip nodes that are too far from reasonable path
+    if (distanceFromStart > searchRadius) continue;
+    
     gCost.set(nodeKey, Infinity);
     fCost.set(nodeKey, Infinity);
     previous.set(nodeKey, null);
@@ -287,11 +296,15 @@ export const dijkstraGraph = (startKey, endKey, nodes, edges) => {
   fCost.set(startKey, manhattanDistance(startKey));
   pq.enqueue(startKey, fCost.get(startKey));
   
-  while (!pq.isEmpty()) {
+  let nodesExplored = 0;
+  const maxNodesToExplore = Math.min(1000, nodes.size * 0.5); // Limit exploration
+  
+  while (!pq.isEmpty() && nodesExplored < maxNodesToExplore) {
     const { element: currentKey } = pq.dequeue();
     
     if (visited.has(currentKey)) continue;
     visited.add(currentKey);
+    nodesExplored++;
     
     // Check if we reached the goal
     if (currentKey === endKey) {
@@ -303,10 +316,11 @@ export const dijkstraGraph = (startKey, endKey, nodes, edges) => {
     
     for (const neighborKey of connections) {
       if (visited.has(neighborKey)) continue;
+      if (!gCost.has(neighborKey)) continue; // Skip nodes outside search radius
       
       const neighborNode = nodes.get(neighborKey);
       
-      // Calculate movement cost (orthogonal vs diagonal)
+      // Calculate movement cost (orthogonal only for performance)
       const dx = currentNode.x - neighborNode.x;
       const dy = currentNode.y - neighborNode.y;
       const movementCost = dx === 0 || dy === 0 ? 1 : 1.414;

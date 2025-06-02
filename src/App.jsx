@@ -80,40 +80,52 @@ const GraphVisualization = ({ position, startPoint, endPoint, pathKeys, graphDat
   const halfSizeWidth = totalSizeWidth / 2;
   const halfSizeHeight = totalSizeHeight / 2;
 
-  const getNodeSize = useCallback((nodeKey) => {
-    const node = nodes.get(nodeKey);
-    const weight = node ? node.weight : 1;
-    
-    // WEIGHT TO SIZE MAPPING:
-    // Higher weight = More difficult terrain = Larger, more imposing obstacles
-    // Lower weight = Easier terrain = Smaller, less obstructive cubes
-    
-    const minWeight = 0.1;   // Easiest terrain (small cubes)
-    const maxWeight = 25.0;  // Most difficult terrain (large cubes)
-    const minSize = 0.4;     // Minimum cube width/depth for easy terrain
-    const maxSize = 2.5;     // Maximum cube width/depth for difficult terrain
-    const minHeight = 0.3;   // Minimum cube height for easy terrain  
-    const maxHeight = 4.0;   // Maximum cube height for difficult terrain
-    
-    // Normalize weight to 0-1 range (0 = easiest, 1 = most difficult)
-    const normalizedWeight = Math.max(0, Math.min(1, (weight - minWeight) / (maxWeight - minWeight)));
-    
-    // Apply curve for better visual distinction (makes differences more apparent)
-    const curvedWeight = Math.pow(normalizedWeight, 0.8);
-    
-    // Calculate size: Higher weight → Larger size (more imposing obstacles)
-    const size = minSize + (maxSize - minSize) * curvedWeight;
-    const height = minHeight + (maxHeight - minHeight) * curvedWeight;
-    
-    return { 
-      width: size, 
-      depth: size, 
-      height: height,
-      // Debug info for verification
-      originalWeight: weight,
-      normalizedWeight: normalizedWeight
-    };
+  // PERFORMANCE OPTIMIZATION: Shared geometries and materials
+  const sharedGeometry = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
+  const defaultMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    roughness: 0.9,
+    metalness: 0.0
+  }), []);
+
+  // PERFORMANCE OPTIMIZATION: Cache node size calculations
+  const nodeSizeCache = useMemo(() => {
+    const cache = new Map();
+    for (const [nodeKey, node] of nodes.entries()) {
+      const weight = node.weight;
+      
+      // WEIGHT TO SIZE MAPPING:
+      // Higher weight = More difficult terrain = Larger, more imposing obstacles
+      // Lower weight = Easier terrain = Smaller, less obstructive cubes
+      
+      const minWeight = 0.1;   // Easiest terrain (small cubes)
+      const maxWeight = 25.0;  // Most difficult terrain (large cubes)
+      const minSize = 0.4;     // Minimum cube width/depth for easy terrain
+      const maxSize = 2.5;     // Maximum cube width/depth for difficult terrain
+      const minHeight = 0.3;   // Minimum cube height for easy terrain  
+      const maxHeight = 4.0;   // Maximum cube height for difficult terrain
+      
+      // Normalize weight to 0-1 range (0 = easiest, 1 = most difficult)
+      const normalizedWeight = Math.max(0, Math.min(1, (weight - minWeight) / (maxWeight - minWeight)));
+      
+      // Apply curve for better visual distinction (makes differences more apparent)
+      const curvedWeight = Math.pow(normalizedWeight, 0.8);
+      
+      // Calculate size: Higher weight → Larger size (more imposing obstacles)
+      const size = minSize + (maxSize - minSize) * curvedWeight;
+      const height = minHeight + (maxHeight - minHeight) * curvedWeight;
+      
+      cache.set(nodeKey, { 
+        width: size, 
+        depth: size, 
+        height: height
+      });
+    }
+    return cache;
   }, [nodes]);
+
+  const getNodeSize = useCallback((nodeKey) => {
+    return nodeSizeCache.get(nodeKey) || { width: 0.4, depth: 0.4, height: 0.3 };
+  }, [nodeSizeCache]);
 
   // Create edge lines with dynamic styling - only show path edges for performance
   const edgeLines = useMemo(() => {
@@ -164,6 +176,48 @@ const GraphVisualization = ({ position, startPoint, endPoint, pathKeys, graphDat
     return lines;
   }, [nodes, position, skip, halfSizeWidth, halfSizeHeight, getNodeSize, animationState]);
 
+  // PERFORMANCE OPTIMIZATION: Group nodes by material type to reduce state changes
+  const nodeGroups = useMemo(() => {
+    const groups = {
+      critical: [], // Start, end, current nodes
+      path: [],     // Path nodes
+      terrain: []   // Regular terrain nodes
+    };
+
+    for (const [nodeKey, node] of nodes.entries()) {
+      const nodeSize = getNodeSize(nodeKey);
+      const nodeColor = getNodeColor(nodeKey);
+      
+      // Determine if this is a critical node (needs shadows and special treatment)
+      const isCritical = (startPoint && node.x === startPoint.x && node.y === startPoint.y) ||
+                        (endPoint && node.x === endPoint.x && node.y === endPoint.y) ||
+                        (animationState && animationState.current === nodeKey);
+      
+      const nodeData = {
+        key: nodeKey,
+        position: [
+          node.x * skip - halfSizeWidth + position[0],
+          node.y * skip - halfSizeHeight + position[1],
+          position[2] + nodeSize.height / 2
+        ],
+        scale: [nodeSize.width, nodeSize.height, nodeSize.depth],
+        color: nodeColor.color || nodeColor,
+        emissive: nodeColor.emissive || '#000000',
+        emissiveIntensity: nodeColor.emissiveIntensity || 0
+      };
+
+      if (isCritical) {
+        groups.critical.push(nodeData);
+      } else if (animationState?.currentPath?.includes(nodeKey) || pathKeys?.has(nodeKey)) {
+        groups.path.push(nodeData);
+      } else {
+        groups.terrain.push(nodeData);
+      }
+    }
+
+    return groups;
+  }, [nodes, getNodeSize, getNodeColor, startPoint, endPoint, animationState, pathKeys, skip, halfSizeWidth, halfSizeHeight, position]);
+
   return (
     <>
       {/* Draw edges with dynamic styling */}
@@ -178,39 +232,60 @@ const GraphVisualization = ({ position, startPoint, endPoint, pathKeys, graphDat
         />
       ))}
       
-      {/* Draw all nodes with optimized rendering */}
-      {Array.from(nodes.entries()).map(([nodeKey, node], index) => {
-        const nodeSize = getNodeSize(nodeKey);
-        const nodeColor = getNodeColor(nodeKey);
-        
-        // Only critical nodes cast/receive shadows for performance
-        const isCritical = (startPoint && node.x === startPoint.x && node.y === startPoint.y) ||
-                          (endPoint && node.x === endPoint.x && node.y === endPoint.y) ||
-                          (animationState && animationState.current === nodeKey);
-        
-        return (
-          <mesh
-            key={nodeKey}
-            position={[
-              node.x * skip - halfSizeWidth + position[0],
-              node.y * skip - halfSizeHeight + position[1],
-              position[2] + nodeSize.height / 2
-            ]}
-            scale={[nodeSize.width, nodeSize.height, nodeSize.depth]}
-            castShadow={isCritical}
-            receiveShadow={isCritical}
-          >
-            <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial 
-              color={nodeColor.color || nodeColor}
-              emissive={nodeColor.emissive || '#000000'}
-              emissiveIntensity={nodeColor.emissiveIntensity || 0}
-              roughness={0.9}
-              metalness={0.0}
-            />
-          </mesh>
-        );
-      })}
+      {/* PERFORMANCE OPTIMIZATION: Render critical nodes with shadows */}
+      {nodeGroups.critical.map((nodeData) => (
+        <mesh
+          key={nodeData.key}
+          position={nodeData.position}
+          scale={nodeData.scale}
+          castShadow
+          receiveShadow
+          geometry={sharedGeometry}
+        >
+          <meshStandardMaterial 
+            color={nodeData.color}
+            emissive={nodeData.emissive}
+            emissiveIntensity={nodeData.emissiveIntensity}
+            roughness={0.9}
+            metalness={0.0}
+          />
+        </mesh>
+      ))}
+      
+      {/* PERFORMANCE OPTIMIZATION: Render path nodes without shadows */}
+      {nodeGroups.path.map((nodeData) => (
+        <mesh
+          key={nodeData.key}
+          position={nodeData.position}
+          scale={nodeData.scale}
+          geometry={sharedGeometry}
+        >
+          <meshStandardMaterial 
+            color={nodeData.color}
+            emissive={nodeData.emissive}
+            emissiveIntensity={nodeData.emissiveIntensity}
+            roughness={0.9}
+            metalness={0.0}
+          />
+        </mesh>
+      ))}
+      
+      {/* PERFORMANCE OPTIMIZATION: Render terrain nodes without shadows or emissive */}
+      {nodeGroups.terrain.map((nodeData) => (
+        <mesh
+          key={nodeData.key}
+          position={nodeData.position}
+          scale={nodeData.scale}
+          geometry={sharedGeometry}
+          material={defaultMaterial}
+        >
+          <meshStandardMaterial 
+            color={nodeData.color}
+            roughness={0.9}
+            metalness={0.0}
+          />
+        </mesh>
+      ))}
     </>
   );
 };
@@ -346,7 +421,7 @@ export default function App() {
   const [animationSteps, setAnimationSteps] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [animationSpeed, setAnimationSpeed] = useState(25); // Faster default speed
+  const [animationSpeed, setAnimationSpeed] = useState(100); // Optimized speed for better performance
   const [animationState, setAnimationState] = useState(null);
   const [cycleCount, setCycleCount] = useState(0); // Track cycle number
   
@@ -474,11 +549,11 @@ export default function App() {
       const result = findShortestGraphPath(startKey, endKey, graphData.nodes, graphData.edges);
       
       if (result.pathExists && result.path.length > 0) {
-        // Create animation steps for the path progression
+        // Create animation steps for smooth path progression
         const pathAnimationSteps = result.path.map((nodeKey, index) => ({
           type: 'pathProgress',
           current: nodeKey,
-          pathSoFar: result.path.slice(0, index + 1),
+          currentPath: result.path.slice(0, index + 1),
           completed: index === result.path.length - 1,
           totalSteps: result.path.length
         }));
@@ -522,14 +597,14 @@ export default function App() {
           active: true,
           current: step.current,
           lastNode: currentStep > 0 ? animationSteps[currentStep].current : null,
-          currentPath: step.pathSoFar,
+          currentPath: step.currentPath || [step.current],
           completed: step.completed
         });
 
         // If animation completed, show final path and schedule next cycle
         if (step.completed) {
-          setPathKeys(new Set(step.pathSoFar));
-          setPath(step.pathSoFar);
+          setPathKeys(new Set(step.currentPath || []));
+          setPath(step.currentPath || []);
           setIsAnimating(false);
           
           // Wait 3 seconds then start next cycle (terrain will change when new points are set)
@@ -562,16 +637,19 @@ export default function App() {
             const result = findShortestGraphPath(startKey, endKey, graphData.nodes, graphData.edges);
             
             if (result.pathExists && result.path.length > 0) {
+              // Create animation steps for smooth path progression
               const pathAnimationSteps = result.path.map((nodeKey, index) => ({
                 type: 'pathProgress',
                 current: nodeKey,
-                pathSoFar: result.path.slice(0, index + 1),
+                currentPath: result.path.slice(0, index + 1),
                 completed: index === result.path.length - 1,
                 totalSteps: result.path.length
               }));
               
               setAnimationSteps(pathAnimationSteps);
               setCurrentStep(0);
+              
+              // Start animation immediately
               setIsAnimating(true);
               setAnimationState({
                 active: true,
@@ -760,9 +838,12 @@ export default function App() {
           near: 0.1,
           far: 1000
         }}
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
         onCreated={({ gl }) => {
           gl.setSize(window.innerWidth, window.innerHeight);
+          // Optimize WebGL settings for performance
+          gl.powerPreference = "high-performance";
+          gl.antialias = false; // Disable for better performance
         }}
       >
         {/* Make camera look at grid center */}
@@ -844,8 +925,8 @@ export default function App() {
           />
         )}
 
-        {/* Progressive path illumination - optimized with fewer lights */}
-        {animationState?.currentPath?.map((nodeKey, index) => {
+        {/* Progressive path illumination - optimized for performance */}
+        {animationState?.currentPath?.filter((_, index) => index % 3 === 0 || index === animationState.currentPath.length - 1).map((nodeKey, index) => {
           const node = graphData.nodes.get(nodeKey);
           if (!node) return null;
           
@@ -854,9 +935,8 @@ export default function App() {
           const isEnd = endPoint && node.x === endPoint.x && node.y === endPoint.y;
           if (isStart || isEnd) return null;
           
-          // Progressive lighting - nodes further back in path get dimmer
-          const totalNodes = animationState.currentPath.length;
-          const intensity = 1.0 + (index / totalNodes) * 3.0; // Range: 1.0 to 4.0
+          // Progressive lighting - fewer lights for better performance
+          const intensity = 1.5 + index * 0.5; // Simpler calculation
           
           return (
             <pointLight
@@ -867,7 +947,7 @@ export default function App() {
                 3.0
               ]}
               intensity={intensity}
-              distance={12}
+              distance={8}
               decay={2}
               color="#ffffff"
             />
