@@ -561,14 +561,14 @@ export default function App() {
         setAnimationSteps(pathAnimationSteps);
         setCurrentStep(0);
         
-        // Start animation immediately
+        // Start animation immediately with first step
         setIsAnimating(true);
         setAnimationState({
           active: true,
-          current: null,
+          current: pathAnimationSteps[0].current,
           lastNode: null,
-          currentPath: [],
-          completed: false
+          currentPath: pathAnimationSteps[0].currentPath || [pathAnimationSteps[0].current],
+          completed: pathAnimationSteps[0].completed
         });
       } else {
         // Try again immediately if no path found
@@ -587,21 +587,22 @@ export default function App() {
     if (!isAnimating || animationSteps.length === 0) return;
 
     const timer = setTimeout(() => {
-      if (currentStep < animationSteps.length - 1) {
-        const nextStep = currentStep + 1;
-        setCurrentStep(nextStep);
+      const nextStepIndex = currentStep + 1;
+      
+      if (nextStepIndex < animationSteps.length) {
+        setCurrentStep(nextStepIndex);
         
-        const step = animationSteps[nextStep];
+        const step = animationSteps[nextStepIndex];
         
         setAnimationState({
           active: true,
           current: step.current,
-          lastNode: currentStep > 0 ? animationSteps[currentStep].current : null,
+          lastNode: animationSteps[currentStep].current,
           currentPath: step.currentPath || [step.current],
           completed: step.completed
         });
 
-        // If animation completed, show final path and schedule next cycle
+        // Check for completion immediately when reaching final step
         if (step.completed) {
           setPathKeys(new Set(step.currentPath || []));
           setPath(step.currentPath || []);
@@ -649,14 +650,14 @@ export default function App() {
               setAnimationSteps(pathAnimationSteps);
               setCurrentStep(0);
               
-              // Start animation immediately
+              // Start animation immediately with first step
               setIsAnimating(true);
               setAnimationState({
                 active: true,
-                current: null,
+                current: pathAnimationSteps[0].current,
                 lastNode: null,
-                currentPath: [],
-                completed: false
+                currentPath: pathAnimationSteps[0].currentPath || [pathAnimationSteps[0].current],
+                completed: pathAnimationSteps[0].completed
               });
             } else {
               // Try again immediately if no path found
@@ -665,6 +666,7 @@ export default function App() {
           }, 3000);
         }
       } else {
+        // Animation is complete
         setIsAnimating(false);
       }
     }, animationSpeed);
@@ -857,6 +859,38 @@ export default function App() {
               distance={8}
               decay={2}
               color="#ffffff"
+            />
+          );
+        })}
+
+        {/* Completed path illumination - bright lights during 3-second pause */}
+        {!isAnimating && path.length > 0 && pathKeys.size > 0 && path.map((nodeKey, index) => {
+          const node = graphData.nodes.get(nodeKey);
+          if (!node) return null;
+          
+          // Skip start and end points (they have their own lights)
+          const isStart = startPoint && node.x === startPoint.x && node.y === startPoint.y;
+          const isEnd = endPoint && node.x === endPoint.x && node.y === endPoint.y;
+          if (isStart || isEnd) return null;
+          
+          // Skip some nodes for performance but ensure complete coverage
+          if (index % 2 !== 0 && index !== path.length - 1) return null;
+          
+          // Bright completion lighting with yellow/golden color
+          const intensity = 4.0 + Math.sin(Date.now() * 0.01 + index * 0.5) * 1.0; // Pulsing effect
+          
+          return (
+            <pointLight
+              key={`completionLight-${nodeKey}`}
+              position={[
+                node.x * skip - halfSizeForLightingWidth,
+                node.y * skip - halfSizeForLightingHeight,
+                4.0
+              ]}
+              intensity={intensity}
+              distance={12}
+              decay={1.5}
+              color="#ffffff" // White to match normal path lighting
             />
           );
         })}
