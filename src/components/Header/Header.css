@@ -1,0 +1,8 @@
+.Header-Container {
+    position: absolute;
+    background-color: white;
+    border: solid 3px red;
+
+    width: 100vw;
+    height: 10vh;
+}

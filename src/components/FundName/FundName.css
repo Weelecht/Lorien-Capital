@@ -1,0 +1,97 @@
+@keyframes fadeInText {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Full viewport width blur overlay that reaches from top */
+.title-blur-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 32vh;
+    background: linear-gradient(to bottom, 
+        transparent 0%,
+        rgba(0, 0, 0, 0.01) 20%,
+        rgba(0, 0, 0, 0.02) 40%,
+        rgba(0, 0, 0, 0.04) 60%,
+        rgba(0, 0, 0, 0.06) 70%,
+        rgba(0, 0, 0, 0.08) 80%,
+        rgba(0, 0, 0, 0.10) 90%,
+        rgba(0, 0, 0, 0.12) 100%);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    /* Very subtle feathered edges */
+    box-shadow: 
+        0 0 40px 20px rgba(0, 0, 0, 0.03),
+        0 0 80px 40px rgba(0, 0, 0, 0.02);
+    z-index: 999;
+    pointer-events: none;
+    opacity: 0;
+    animation: fadeInText 2.5s ease-out 0.5s forwards;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.fund-name {
+    color: white;
+    font-family: 'Futura Bold', 'Futura', 'Futura PT', 'Trebuchet MS', Arial, sans-serif;
+    font-size: clamp(3rem, 8vw, 8rem);
+    font-weight: 700;
+    text-shadow: 
+        0 0 10px rgba(0, 0, 0, 0.8),
+        0 0 20px rgba(0, 0, 0, 0.6),
+        4px 4px 8px rgba(0, 0, 0, 0.9),
+        8px 8px 16px rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    pointer-events: none;
+    margin: 0;
+    margin-top: 25vh;
+    white-space: nowrap;
+    padding: clamp(20px, 3vw, 50px) clamp(30px, 4vw, 50px) clamp(25px, 3.5vw, 40px) clamp(30px, 4vw, 50px);
+    display: inline-block;
+    position: relative;
+    transform: translateY(-50%);
+}
+
+/* Media queries for fine-tuned responsive design */
+@media (max-width: 768px) {
+    .fund-name {
+        font-size: clamp(2.5rem, 10vw, 4rem);
+        padding: clamp(15px, 2.5vw, 30px) clamp(20px, 3vw, 35px) clamp(20px, 2.8vw, 30px) clamp(20px, 3vw, 35px);
+        white-space: normal;
+        text-align: center;
+        line-height: 1.1;
+    }
+}
+
+@media (max-width: 480px) {
+    .fund-name {
+        font-size: clamp(2rem, 12vw, 3rem);
+        padding: clamp(10px, 2vw, 20px) clamp(15px, 2.5vw, 25px) clamp(15px, 2.2vw, 20px) clamp(15px, 2.5vw, 25px);
+        margin-top: 22vh;
+    }
+}
+
+@media (min-width: 1400px) {
+    .fund-name {
+        font-size: clamp(6rem, 6vw, 10rem);
+        padding: clamp(40px, 3vw, 60px) clamp(50px, 4vw, 70px) clamp(45px, 3.5vw, 50px) clamp(50px, 4vw, 70px);
+    }
+}
+
+/* Thin white underline that matches text width */
+/* .fund-name::after {
+    content: '';
+    position: absolute;
+    bottom: 30px;
+    left: 50px;
+    right: 50px;
+    height: 2px;
+    background: white;
+} */
