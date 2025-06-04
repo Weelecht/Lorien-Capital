@@ -4,20 +4,27 @@
     left: 50%;
     transform: translateX(-50%);
     width:100%;
-    padding: 4rem 2rem;
+    padding: 4rem 2rem 8rem 2rem;
     margin-bottom: 4rem;
     background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(5px);
     z-index: 1001;
     text-align: left;
-    min-height: 50vh;
+    min-height: 150vh;
 }
 
-.Content-Container h1 {
+.supporting-heading {
     color: white;
     font-size: 3rem;
     padding: 3rem;
     margin: 0;
     margin-top: -100px;
     font-family: 'Futura Bold', 'Futura', 'Futura PT', 'Trebuchet MS', Arial, sans-serif;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 1002;
+}
+
+.supporting-heading.scrolled {
+    transform: translateX(200px);
 }

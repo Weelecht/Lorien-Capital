@@ -11,6 +11,14 @@
         0 16px 48px rgba(255, 255, 255, 0.05);
 }
 
+.Investment-Section {
+    margin-bottom: 4rem;
+}
+
+.Investment-Section:last-child {
+    margin-bottom: 0;
+}
+
 .Projects-Container h2 {
     font-size: 2.5rem;
     font-weight: 600;
@@ -23,12 +31,12 @@
         0 0 20px rgba(0, 0, 0, 0.6);
 }
 
-.Direct-Investment-Container {
+.Direct-Investment-Container,
+.Echo-Investment-Container {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 2rem;
-    margin-bottom: 4rem;
 }
 
 /* Responsive breakpoints */
@@ -37,19 +45,24 @@
         padding: 2rem 1rem;
     }
     
+    .Investment-Section {
+        margin-bottom: 3rem;
+    }
+    
     .Projects-Container h2 {
         font-size: 2rem;
         margin-bottom: 2rem;
     }
     
-    .Direct-Investment-Container {
-        grid-template-columns: 1fr;
+    .Direct-Investment-Container,
+    .Echo-Investment-Container {
         gap: 1.5rem;
     }
 }
 
 @media (min-width: 1400px) {
-    .Direct-Investment-Container {
+    .Direct-Investment-Container,
+    .Echo-Investment-Container {
         grid-template-columns: repeat(4, 1fr);
     }
 }
