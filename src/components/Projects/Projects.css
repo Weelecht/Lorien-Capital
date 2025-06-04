@@ -1,0 +1,55 @@
+.Projects-Container {
+    background: rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 4rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    box-shadow: 
+        0 4px 12px rgba(255, 255, 255, 0.15),
+        0 8px 24px rgba(255, 255, 255, 0.1),
+        0 16px 48px rgba(255, 255, 255, 0.05);
+}
+
+.Projects-Container h2 {
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 3rem;
+    text-align: center;
+    font-family: 'Futura Bold', 'Futura', 'Futura PT', 'Trebuchet MS', Arial, sans-serif;
+    text-shadow: 
+        0 0 10px rgba(0, 0, 0, 0.8),
+        0 0 20px rgba(0, 0, 0, 0.6);
+}
+
+.Direct-Investment-Container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 4rem;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 768px) {
+    .Projects-Container {
+        padding: 2rem 1rem;
+    }
+    
+    .Projects-Container h2 {
+        font-size: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .Direct-Investment-Container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+}
+
+@media (min-width: 1400px) {
+    .Direct-Investment-Container {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}

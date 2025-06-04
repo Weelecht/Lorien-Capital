@@ -1,0 +1,30 @@
+.Navigation-Container {
+    display: flex;
+    flex-direction: row;
+    color: white;
+    width: 100%;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0 2rem;
+}
+
+.Navigation-Container ul {
+    display: flex;
+    flex-direction: row;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 2rem;
+}
+
+.Navigation-Container li {
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    transition: opacity 0.3s ease;
+    font-family: 'Futura Bold', 'Futura', 'Futura PT', 'Trebuchet MS', Arial, sans-serif;
+
+}
+
+.Navigation-Container li:hover {
+    opacity: 0.7;
+}

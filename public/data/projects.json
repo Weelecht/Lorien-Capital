@@ -1,0 +1,60 @@
+{
+   "Direct": [
+        {
+            "name": "Pump.fun",
+            "website": "https://pump.fun",
+            "twitter": "https://x.com/pumpdotfun",
+            "image": "https://pbs.twimg.com/profile_images/1748108741503803392/EmT4yP6S_400x400.jpg"
+        },
+        {
+            "name": "IYK",
+            "website": "https://iyk.app/",
+            "twitter": "https://x.com/iyk_app",
+            "image": "https://pbs.twimg.com/profile_images/1626786582018531329/GgVLInP-_400x400.jpg"
+        },
+        {
+            "name": "Wasabi Protocol",
+            "website": "https://wasabi.xyz/",
+            "twitter": "https://x.com/wasabi_protocol",
+            "image": "https://pbs.twimg.com/profile_images/1877718222188756992/Vt6JBw4Q_400x400.png"
+        }
+   ],
+   "Echo": [
+        {
+            "name": "Bebop",
+            "website": "https://bebop.xyz/",
+            "twitter": "https://x.com/bebop_dex",
+            "image": "https://app.echo.xyz/_next/image?url=https%3A%2F%2Fdwzoaori095nu.cloudfront.net%2Fprofile-images%2Ftwitter%2F1523778275826442242&w=256&q=75"
+        },
+        {
+            "name": "GTE",
+            "website": "https://www.gte.xyz/",
+            "twitter": "https://x.com/GTE_XYZ",
+            "image": "https://app.echo.xyz/_next/image?url=https%3A%2F%2Fdwzoaori095nu.cloudfront.net%2Fprofile-images%2Ftwitter%2F1788585272524898305&w=256&q=75"
+        },
+        {
+            "name": "Hyperdrive",
+            "website": "https://hyperdrive.fi/",
+            "twitter": "https://x.com/hyperdrivedefi",
+            "image": "https://app.echo.xyz/_next/image?url=https%3A%2F%2Fdwzoaori095nu.cloudfront.net%2Fprofile-images%2Ftwitter%2F1596837893732851712&w=256&q=75"
+        },
+        {
+            "name": "Hyperlend",
+            "website": "https://hyperlend.finance/",
+            "twitter": "https://x.com/hyperlendx",
+            "image": "https://app.echo.xyz/_next/image?url=https%3A%2F%2Fdwzoaori095nu.cloudfront.net%2Fprofile-images%2Ftwitter%2F1804580358303924224&w=256&q=75"
+        },
+        {
+            "name": "Harmonix Finance",
+            "website": "https://harmonix.fi/",
+            "twitter": "https://x.com/harmonixfi",
+            "image": "https://app.echo.xyz/_next/image?url=https%3A%2F%2Fdwzoaori095nu.cloudfront.net%2Fprofile-images%2Ftwitter%2F1729431024990662656&w=256&q=75"
+        },
+        {
+            "name": "RateX",
+            "website": "https://rate-x.io/",
+            "twitter": "https://x.com/RateX_Dex",
+            "image": "https://app.echo.xyz/_next/image?url=https%3A%2F%2Fdwzoaori095nu.cloudfront.net%2Fprofile-images%2Ftwitter%2F1721914598922895360&w=256&q=75"
+        }
+   ]
+}

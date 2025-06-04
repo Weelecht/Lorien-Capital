@@ -6,9 +6,10 @@ import { GizmoHelper, GizmoViewport } from '@react-three/drei';
 import GraphVisualization from './components/GraphVisualization';
 import ResponsiveCamera from './components/ResponsiveCamera';
 import SceneLighting from './components/SceneLighting';
-import Content from "./components/Content";
+import Content from "./components/Content/Content";
 import FundName from './components/FundName/FundName';
 import ContactForm from './components/ContactForm';
+import Header from './components/Header/Header';
 
 // Hooks
 import { useResponsiveGrid } from './hooks/useResponsiveGrid';
@@ -33,7 +34,7 @@ export default function App() {
 
   return (
     <div className="Canvas-Container">
-
+      <Header/>
       <FundName/> 
 
       <Canvas
@@ -94,7 +95,7 @@ export default function App() {
       </Canvas>
 
       <Content/>
-
+      <ContactForm/>
         
       
         

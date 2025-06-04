@@ -63,9 +63,6 @@ export const useResponsiveGrid = () => {
         width: window.innerWidth,
         height: window.innerHeight
       });
-      
-      // Force React Three Fiber to recalculate on resize
-      window.dispatchEvent(new Event('resize'));
     };
 
     window.addEventListener('resize', handleResize);

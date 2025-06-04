@@ -1,0 +1,23 @@
+.Content-Container {
+    position: absolute;
+    top: calc(100vh - 100px);
+    left: 50%;
+    transform: translateX(-50%);
+    width:100%;
+    padding: 4rem 2rem;
+    margin-bottom: 4rem;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    z-index: 1001;
+    text-align: left;
+    min-height: 50vh;
+}
+
+.Content-Container h1 {
+    color: white;
+    font-size: 3rem;
+    padding: 3rem;
+    margin: 0;
+    margin-top: -100px;
+    font-family: 'Futura Bold', 'Futura', 'Futura PT', 'Trebuchet MS', Arial, sans-serif;
+}
