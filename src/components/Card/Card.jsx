@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { FaTwitter } from 'react-icons/fa'
 import "./Card.css";
 
 export default function Card({name, image, website, twitter}) {
@@ -61,30 +62,39 @@ export default function Card({name, image, website, twitter}) {
   };
 
   return (
-    <div 
-        className={`Card-Container ${isHovered ? 'hovered' : ''}`}
-        style={{ 
-          backgroundImage: `url(${image})`,
-          '--dominant-color': dominantColor
-        }}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-    >   
-        <div className="card-content">
-            <h3>{name}</h3>
-            <div className="card-links">
-                {website && (
-                    <a href={website} target="_blank" rel="noopener noreferrer" className="card-link">
-                        Website
-                    </a>
-                )}
-                {twitter && (
-                    <a href={twitter} target="_blank" rel="noopener noreferrer" className="card-link">
-                        Twitter
-                    </a>
-                )}
+    <a 
+        href={website} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="card-wrapper"
+        style={{ textDecoration: 'none' }}
+    >
+        <div 
+            className={`Card-Container ${isHovered ? 'hovered' : ''}`}
+            style={{ 
+              backgroundImage: `url(${image})`,
+              '--dominant-color': dominantColor
+            }}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+        >   
+            <div className="card-content">
+                <h3>{name}</h3>
+                <div className="card-links">
+                    {twitter && (
+                        <a 
+                            href={twitter} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="card-link"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <FaTwitter />
+                        </a>
+                    )}
+                </div>
             </div>
         </div>
-    </div>
+    </a>
   )
 }

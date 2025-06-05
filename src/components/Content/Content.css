@@ -1,6 +1,6 @@
 .Content-Container {
     position: absolute;
-    top: calc(100vh - 100px);
+    top: calc(100vh - 90px);
     left: 50%;
     transform: translateX(-50%);
     width:100%;
@@ -27,4 +27,6 @@
 
 .supporting-heading.scrolled {
     transform: translateX(200px);
+    color: #00ff88;
+    text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
 }

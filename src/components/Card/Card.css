@@ -10,7 +10,6 @@
     background-position: center;
     background-repeat: no-repeat;
     overflow: visible;
-    border-radius: 8px;
     transition: transform 0.3s ease;
 }
 
@@ -106,12 +105,22 @@
 .Card-Container .card-link {
     color: rgba(255, 255, 255, 0.9);
     text-decoration: none;
-    font-size: 0.875rem;
-    padding: 0.25rem 0.5rem;
+    font-size: 1rem;
+    padding: 0.5rem;
     background: rgba(255, 255, 255, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 4px;
     backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    transition: all 0.2s ease;
+}
+
+.Card-Container .card-link:hover {
+    background: rgba(255, 255, 255, 0.6);
+    transform: scale(1.1);
 }
 
 /* Loading state */
