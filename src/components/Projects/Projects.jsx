@@ -25,7 +25,7 @@ export default function Projects() {
 
 
   return (
-    <div className='Projects-Container'>
+    <div id="portfolio" className='Projects-Container'>
       {/* Direct Investment Section */}
       <div className='Investment-Section'>
         <h2>Direct Investment</h2>

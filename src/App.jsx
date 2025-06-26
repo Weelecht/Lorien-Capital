@@ -10,6 +10,7 @@ import Content from "./components/Content/Content";
 import FundName from './components/FundName/FundName';
 import ContactForm from './components/ContactForm';
 import Header from './components/Header/Header';
+import Footer from './components/Footer/Footer';
 
 // Hooks
 import { useResponsiveGrid } from './hooks/useResponsiveGrid';
@@ -42,7 +43,7 @@ export default function App() {
           backgroundColor: 'black',
           display: 'block',
           width: '100%',
-          height: '100%'
+          height: '100vh'
         }}
         camera={{ 
           fov: 60,
@@ -94,11 +95,13 @@ export default function App() {
         />
       </Canvas>
 
-      <Content/>
-      <ContactForm/>
-        
+      <div className="content-wrapper">
+        <Content/>
+        <ContactForm/>
+      </div>
       
-        
+      <Footer/>
+ 
     </div>
   );
 }

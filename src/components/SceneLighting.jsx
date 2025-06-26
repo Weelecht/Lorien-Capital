@@ -57,9 +57,9 @@ const SceneLighting = ({
           <pointLight
             key="torch"
             position={[torchX, torchY, torchZ]}
-            intensity={8.0}
-            distance={15}
-            decay={2}
+            intensity={15.0}
+            distance={25}
+            decay={1.8}
             color="#aa00ff"
           />
         );
@@ -73,9 +73,9 @@ const SceneLighting = ({
             startPoint.y * skip - halfSizeForLightingHeight,
             2
           ]}
-          intensity={6.0}
-          distance={12}
-          decay={1.5}
+          intensity={12.0}
+          distance={20}
+          decay={1.2}
           color="#00ff00"
         />
       )}
@@ -87,9 +87,9 @@ const SceneLighting = ({
             endPoint.y * skip - halfSizeForLightingHeight,
             2
           ]}
-          intensity={6.0}
-          distance={12}
-          decay={1.5}
+          intensity={12.0}
+          distance={20}
+          decay={1.2}
           color="#ff0000"
         />
       )}

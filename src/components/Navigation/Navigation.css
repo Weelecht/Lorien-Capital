@@ -17,12 +17,15 @@
     gap: 2rem;
 }
 
-.Navigation-Container li {
+.Navigation-Container ul li {
+    color: white;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 400;
     cursor: pointer;
+    transition: all 0.3s ease;
     padding: 0.5rem 1rem;
-    transition: opacity 0.3s ease;
-    font-family: 'Futura Bold', 'Futura', 'Futura PT', 'Trebuchet MS', Arial, sans-serif;
-
+    border-radius: 4px;
 }
 
 .Navigation-Container li:hover {

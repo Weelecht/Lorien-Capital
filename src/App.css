@@ -5,6 +5,12 @@
   padding: 0;
 }
 
+.content-wrapper {
+  position: relative;
+  width: 100%;
+  z-index: 1000;
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;

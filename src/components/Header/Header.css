@@ -3,17 +3,26 @@
     background-color: black;
 
     width: 100vw;
-    height: 6%;
+    height: 3%;
     z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: flex-end;
 }
 
-.Header-Container H2 {
+.Header-Container .header-title {
     color: white;
     padding: 1rem;
-    font-size: xx-large;
-     font-family: 'Futura Bold', 'Futura', 'Futura PT', 'Trebuchet MS', Arial, sans-serif;
+    font-size: 1.5rem;
+    margin-left: 3rem;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.3s ease, transform 0.2s ease;
+}
+
+.Header-Container .header-title:hover {
+    opacity: 0.8;
+    transform: scale(1.02);
 }
 

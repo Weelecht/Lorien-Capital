@@ -13,12 +13,14 @@ export default function Content() {
       const currentScrollY = window.scrollY;
       
       // Trigger immediately when scrolling down
-      if (currentScrollY > lastScrollY && currentScrollY > 50) {
+      if (currentScrollY > 50) {
         setIsScrolled(true);
+        console.log('Scroll: Adding scrolled class, scrollY:', currentScrollY);
       } 
       // Revert when scrolling up to near the top
-      else if (currentScrollY < lastScrollY && currentScrollY < 50) {
+      else if (currentScrollY < 50) {
         setIsScrolled(false);
+        console.log('Scroll: Removing scrolled class, scrollY:', currentScrollY);
       }
       
       setLastScrollY(currentScrollY);
@@ -26,15 +28,15 @@ export default function Content() {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
+  }, []); // Empty dependency array
 
   return (
     <div className='Content-Container' ref={contentRef}>  
         <h1 
           ref={headingRef}
-          className={`supporting-heading ${isScrolled ? 'scrolled' : ''}`}
+          className={`portfolio-heading ${isScrolled ? 'scrolled' : ''}`}
         >
-          Supporting
+          Portfolio
         </h1>
         <Projects />
     </div>
