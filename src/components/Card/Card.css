@@ -193,103 +193,102 @@
 /* Responsive Design - Tablet */
 @media (max-width: 768px) {
     .Card-Container {
-        width: calc(50vw - 2rem);
-        min-width: 240px;
-        max-width: 280px;
-        height: calc((50vw - 2rem) * 0.857); /* Maintain aspect ratio */
-        min-height: 200px;
-        max-height: 240px;
+        width: 220px;
+        height: 188px; /* Maintain aspect ratio: 220 * 0.857 */
     }
     
     .card-content {
-        padding: 1.25rem;
+        padding: 1.2rem;
+        height: 156px; /* 188 - 32 (footer height) */
     }
     
     .card-footer {
-        padding: 0.75rem 1.25rem;
-        height: 35px;
+        padding: 0.8rem 1.2rem;
+        height: 32px;
     }
     
     .Card-Container h3 {
-        font-size: 1rem;
+        font-size: 0.95rem;
+        padding-right: 0.8rem;
     }
     
     .Card-Container .card-stage {
-        font-size: 0.9rem;
-        right: 2.25rem;
+        font-size: 0.85rem;
+        right: 2rem;
+        padding: 0 0.4rem;
     }
     
     .Card-Container .card-link {
-        width: 2.25rem;
-        font-size: 0.9rem;
+        width: 2rem;
+        font-size: 0.85rem;
     }
 }
 
 /* Responsive Design - Mobile */
 @media (max-width: 480px) {
     .Card-Container {
-        width: calc(100vw - 2rem);
-        max-width: 320px;
-        height: calc((100vw - 2rem) * 0.857); /* Maintain aspect ratio */
-        max-height: 274px;
+        width: 180px;
+        height: 154px; /* Maintain aspect ratio: 180 * 0.857 */
     }
     
     .card-content {
         padding: 1rem;
+        height: 128px; /* 154 - 26 (footer height) */
     }
     
     .card-footer {
-        padding: 0.5rem 1rem;
-        height: 30px;
+        padding: 0.6rem 1rem;
+        height: 26px;
     }
     
     .Card-Container h3 {
-        font-size: 0.9rem;
-        padding-right: 0.75rem;
+        font-size: 0.85rem;
+        padding-right: 0.6rem;
     }
     
     .Card-Container .card-stage {
-        font-size: 0.8rem;
-        right: 2rem;
-        padding: 0 0.25rem;
+        font-size: 0.75rem;
+        right: 1.6rem;
+        padding: 0 0.3rem;
     }
     
     .Card-Container .card-link {
-        width: 2rem;
-        font-size: 0.8rem;
+        width: 1.6rem;
+        font-size: 0.75rem;
     }
 }
 
 /* Responsive Design - Small Mobile */
 @media (max-width: 360px) {
     .Card-Container {
-        width: calc(100vw - 1.5rem);
-        height: calc((100vw - 1.5rem) * 0.857);
+        width: 160px;
+        height: 137px; /* Maintain aspect ratio: 160 * 0.857 */
     }
     
     .card-content {
-        padding: 0.75rem;
+        padding: 0.8rem;
+        height: 113px; /* 137 - 24 (footer height) */
     }
     
     .card-footer {
-        padding: 0.4rem 0.75rem;
-        height: 28px;
+        padding: 0.5rem 0.8rem;
+        height: 24px;
     }
     
     .Card-Container h3 {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         padding-right: 0.5rem;
     }
     
     .Card-Container .card-stage {
-        font-size: 0.75rem;
-        right: 1.75rem;
-        padding: 0 0.2rem;
+        font-size: 0.65rem;
+        right: 1.4rem;
+        padding: 0 0.25rem;
     }
     
     .Card-Container .card-link {
-        width: 1.75rem;
-        font-size: 0.75rem;
+        width: 1.4rem;
+        font-size: 0.65rem;
     }
 }
 
