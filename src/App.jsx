@@ -81,7 +81,8 @@ export default function App() {
           backgroundColor: 'black',
           display: 'block',
           width: '100%',
-          height: isLandscape ? '100vh' : '100vh'
+          height: isLandscape ? '100vh' : '100vh',
+          position: 'relative'
         }}
         camera={{ 
           fov: isMobile ? 70 : 60, // Wider FOV for mobile
