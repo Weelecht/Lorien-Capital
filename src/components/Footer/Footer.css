@@ -8,6 +8,7 @@
   margin-top: 2rem;
   z-index: 1000;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .footer-content {
@@ -162,6 +163,36 @@
   .footer-link {
     font-size: 0.9rem;
   }
+  
+  .footer-content {
+    gap: 1.5rem;
+  }
+  
+  .footer-bottom {
+    margin-top: 2rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .Footer-Container {
+    padding: 1rem 0.75rem 0.75rem 0.75rem;
+  }
+  
+  .footer-title {
+    font-size: 1.3rem;
+  }
+  
+  .footer-subtitle {
+    font-size: 1rem;
+  }
+  
+  .footer-description {
+    font-size: 0.8rem;
+  }
+  
+  .footer-link {
+    font-size: 0.8rem;
+  }
 }
 
 /* Animation for footer appearance */
@@ -194,4 +225,16 @@
 
 .footer-link.flash {
   animation: contactFlash 3s ease-in-out;
+}
+
+/* Touch-friendly interactions */
+@media (hover: none) and (pointer: coarse) {
+  .footer-link:hover {
+    transform: none;
+  }
+  
+  .footer-link:active {
+    transform: translateY(-2px);
+    color: white;
+  }
 }

@@ -33,6 +33,9 @@ export default function App() {
     graphData
   } = usePathfinding(gridWidth, gridHeight);
 
+  // Detect mobile device for performance optimization
+  const isMobile = window.innerWidth <= 768;
+
   return (
     <div className="Canvas-Container">
       <Header/>
@@ -46,17 +49,25 @@ export default function App() {
           height: '100vh'
         }}
         camera={{ 
-          fov: 60,
+          fov: isMobile ? 70 : 60, // Wider FOV for mobile
           position: [0, 0, 80],
           near: 0.1,
           far: 1000
         }}
-        dpr={[1, 1.5]}
+        dpr={isMobile ? [1, 1] : [1, 1.5]} // Lower DPR for mobile performance
         onCreated={({ gl }) => {
           gl.setSize(window.innerWidth, window.innerHeight);
           // Optimize WebGL settings for performance
           gl.powerPreference = "high-performance";
-          gl.antialias = false; // Disable for better performance
+          gl.antialias = !isMobile; // Disable antialiasing on mobile for better performance
+          gl.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1 : 1.5));
+        }}
+        gl={{
+          alpha: false,
+          antialias: !isMobile,
+          powerPreference: "high-performance",
+          stencil: false,
+          depth: true
         }}
       >
         {/* Camera that adapts to grid size */}
