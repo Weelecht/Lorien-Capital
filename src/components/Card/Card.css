@@ -208,19 +208,19 @@
     }
     
     .Card-Container h3 {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         padding-right: 0.8rem;
     }
     
     .Card-Container .card-stage {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         right: 2rem;
         padding: 0 0.4rem;
     }
     
     .Card-Container .card-link {
         width: 2rem;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
     }
 }
 
@@ -242,19 +242,19 @@
     }
     
     .Card-Container h3 {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         padding-right: 0.6rem;
     }
     
     .Card-Container .card-stage {
-        font-size: 0.75rem;
+        font-size: 0.65rem;
         right: 1.6rem;
         padding: 0 0.3rem;
     }
     
     .Card-Container .card-link {
         width: 1.6rem;
-        font-size: 0.75rem;
+        font-size: 0.65rem;
     }
 }
 
@@ -276,19 +276,19 @@
     }
     
     .Card-Container h3 {
-        font-size: 0.75rem;
+        font-size: 0.65rem;
         padding-right: 0.5rem;
     }
     
     .Card-Container .card-stage {
-        font-size: 0.65rem;
+        font-size: 0.55rem;
         right: 1.4rem;
         padding: 0 0.25rem;
     }
     
     .Card-Container .card-link {
         width: 1.4rem;
-        font-size: 0.65rem;
+        font-size: 0.55rem;
     }
 }
 

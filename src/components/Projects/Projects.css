@@ -60,12 +60,13 @@
     .Direct-Investment-Container,
     .Echo-Investment-Container {
         gap: 1.5rem;
+        justify-content: center;
     }
 }
 
 @media (max-width: 480px) {
     .Projects-Container {
-        padding: 1.5rem 1rem;
+        padding: 1.5rem 0.75rem;
     }
     
     .Investment-Section {
@@ -86,7 +87,7 @@
 
 @media (max-width: 360px) {
     .Projects-Container {
-        padding: 1rem 0.75rem;
+        padding: 1rem 0.5rem;
     }
     
     .Investment-Section {
@@ -101,6 +102,7 @@
     .Direct-Investment-Container,
     .Echo-Investment-Container {
         gap: 0.75rem;
+        justify-content: center;
     }
 }
 
