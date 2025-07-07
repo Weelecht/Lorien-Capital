@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
-import Projects from '../Projects/Projects'
-import "./Content.css"
+import "./PortfolioHeading.css"
 
-export default function Content() {
+export default function PortfolioHeading() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const contentRef = useRef(null);
+  const headingRef = useRef(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,8 +29,11 @@ export default function Content() {
   }, []); // Empty dependency array
 
   return (
-    <div className='Content-Container' ref={contentRef}>  
-      <Projects />
-    </div>
+    <h1 
+      ref={headingRef}
+      className={`portfolio-heading ${isScrolled ? 'scrolled' : ''}`}
+    >
+      Portfolio
+    </h1>
   )
-}
+} 

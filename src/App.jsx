@@ -11,6 +11,7 @@ import FundName from './components/FundName/FundName';
 import ContactForm from './components/ContactForm';
 import Header from './components/Header/Header';
 import Footer from './components/Footer/Footer';
+import PortfolioHeading from './components/PortfolioHeading';
 
 // Hooks
 import { useResponsiveGrid } from './hooks/useResponsiveGrid';
@@ -40,6 +41,7 @@ export default function App() {
     <div className="Canvas-Container">
       <Header/>
       <FundName/> 
+      <PortfolioHeading/>
 
       <Canvas
         style={{ 
