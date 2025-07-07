@@ -36,74 +36,22 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Phone rotation handling - Force landscape mode */
-@media screen and (max-height: 500px) and (orientation: landscape) {
-  body {
-    transform: rotate(90deg);
-    transform-origin: left top;
-    width: 100vh;
-    height: 100vw;
-    overflow-x: auto;
-    overflow-y: hidden;
-    position: absolute;
-    top: 100%;
-    left: 0;
-  }
-  
-  #root {
-    transform: rotate(90deg);
-    transform-origin: left top;
-    width: 100vh;
-    height: 100vw;
-    position: absolute;
-    top: 100%;
-    left: 0;
-  }
-  
-  .Canvas-Container {
-    width: 100vh;
-    height: 100vw;
-    transform: rotate(90deg);
-    transform-origin: left top;
-    position: absolute;
-    top: 100%;
-    left: 0;
-  }
+/* Landscape mode styles - no rotation, just layout adjustments */
+body.landscape-mode {
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
-/* Alternative approach for better compatibility */
-@media screen and (max-aspect-ratio: 1/1) and (max-height: 600px) {
-  body {
-    transform: rotate(90deg);
-    transform-origin: left top;
-    width: 100vh;
-    height: 100vw;
-    overflow-x: auto;
-    overflow-y: hidden;
-    position: absolute;
-    top: 100%;
-    left: 0;
-  }
-  
-  #root {
-    transform: rotate(90deg);
-    transform-origin: left top;
-    width: 100vh;
-    height: 100vw;
-    position: absolute;
-    top: 100%;
-    left: 0;
-  }
-  
-  .Canvas-Container {
-    width: 100vh;
-    height: 100vw;
-    transform: rotate(90deg);
-    transform-origin: left top;
-    position: absolute;
-    top: 100%;
-    left: 0;
-  }
+.landscape-mode .Canvas-Container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.landscape-mode .content-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Ensure proper touch scrolling on mobile */

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { GizmoHelper, GizmoViewport } from '@react-three/drei';
 
@@ -34,84 +34,25 @@ export default function App() {
     graphData
   } = usePathfinding(gridWidth, gridHeight);
 
+  // State for landscape mode
+  const [isLandscape, setIsLandscape] = useState(false);
+
   // Detect mobile device for performance optimization
   const isMobile = window.innerWidth <= 768;
 
-  // Handle phone rotation
+  // Handle phone rotation - simpler approach
   useEffect(() => {
     const handleOrientationChange = () => {
-      const isLandscape = window.innerHeight < window.innerWidth;
       const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isLandscapeMode = window.innerHeight < window.innerWidth;
       
-      if (isMobileDevice && isLandscape && window.innerHeight < 600) {
-        // Force landscape mode for mobile devices
-        document.body.style.transform = 'rotate(90deg)';
-        document.body.style.transformOrigin = 'left top';
-        document.body.style.width = '100vh';
-        document.body.style.height = '100vw';
-        document.body.style.overflowX = 'auto';
-        document.body.style.overflowY = 'hidden';
-        document.body.style.position = 'absolute';
-        document.body.style.top = '100%';
-        document.body.style.left = '0';
-        
-        // Apply same transform to root and canvas container
-        const root = document.getElementById('root');
-        const canvasContainer = document.querySelector('.Canvas-Container');
-        
-        if (root) {
-          root.style.transform = 'rotate(90deg)';
-          root.style.transformOrigin = 'left top';
-          root.style.width = '100vh';
-          root.style.height = '100vw';
-          root.style.position = 'absolute';
-          root.style.top = '100%';
-          root.style.left = '0';
-        }
-        
-        if (canvasContainer) {
-          canvasContainer.style.transform = 'rotate(90deg)';
-          canvasContainer.style.transformOrigin = 'left top';
-          canvasContainer.style.width = '100vh';
-          canvasContainer.style.height = '100vw';
-          canvasContainer.style.position = 'absolute';
-          canvasContainer.style.top = '100%';
-          canvasContainer.style.left = '0';
-        }
+      if (isMobileDevice && isLandscapeMode && window.innerHeight < 600) {
+        setIsLandscape(true);
+        // Add landscape class to body for CSS targeting
+        document.body.classList.add('landscape-mode');
       } else {
-        // Reset to normal mode
-        document.body.style.transform = '';
-        document.body.style.transformOrigin = '';
-        document.body.style.width = '';
-        document.body.style.height = '';
-        document.body.style.overflowX = '';
-        document.body.style.overflowY = '';
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.left = '';
-        
-        const root = document.getElementById('root');
-        const canvasContainer = document.querySelector('.Canvas-Container');
-        
-        if (root) {
-          root.style.transform = '';
-          root.style.transformOrigin = '';
-          root.style.width = '';
-          root.style.height = '';
-          root.style.position = '';
-          root.style.top = '';
-          root.style.left = '';
-        }
-        
-        if (canvasContainer) {
-          canvasContainer.style.transform = '';
-          canvasContainer.style.transformOrigin = '';
-          canvasContainer.style.width = '';
-          canvasContainer.style.height = '';
-          canvasContainer.style.position = '';
-          canvasContainer.style.top = '';
-          canvasContainer.style.left = '';
-        }
+        setIsLandscape(false);
+        document.body.classList.remove('landscape-mode');
       }
     };
 
@@ -125,11 +66,12 @@ export default function App() {
     return () => {
       window.removeEventListener('orientationchange', handleOrientationChange);
       window.removeEventListener('resize', handleOrientationChange);
+      document.body.classList.remove('landscape-mode');
     };
   }, []);
 
   return (
-    <div className="Canvas-Container">
+    <div className={`Canvas-Container ${isLandscape ? 'landscape-mode' : ''}`}>
       <Header/>
       <FundName/> 
       <PortfolioHeading/>
@@ -139,7 +81,7 @@ export default function App() {
           backgroundColor: 'black',
           display: 'block',
           width: '100%',
-          height: '100vh'
+          height: isLandscape ? '100vh' : '100vh'
         }}
         camera={{ 
           fov: isMobile ? 70 : 60, // Wider FOV for mobile
