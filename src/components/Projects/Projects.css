@@ -65,7 +65,7 @@
 
 @media (max-width: 480px) {
     .Projects-Container {
-        padding: 1.5rem 0.75rem;
+        padding: 1.5rem 1rem;
     }
     
     .Investment-Section {
@@ -81,6 +81,26 @@
     .Echo-Investment-Container {
         gap: 1rem;
         justify-content: center;
+    }
+}
+
+@media (max-width: 360px) {
+    .Projects-Container {
+        padding: 1rem 0.75rem;
+    }
+    
+    .Investment-Section {
+        margin-bottom: 1.5rem;
+    }
+    
+    .Projects-Container h2 {
+        font-size: clamp(1rem, 7vw, 1.3rem);
+        margin-bottom: 1rem;
+    }
+    
+    .Direct-Investment-Container,
+    .Echo-Investment-Container {
+        gap: 0.75rem;
     }
 }
 

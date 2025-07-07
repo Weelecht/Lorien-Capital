@@ -190,11 +190,15 @@
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
 }
 
-/* Responsive Design */
+/* Responsive Design - Tablet */
 @media (max-width: 768px) {
     .Card-Container {
-        width: 260px;
-        height: 220px;
+        width: calc(50vw - 2rem);
+        min-width: 240px;
+        max-width: 280px;
+        height: calc((50vw - 2rem) * 0.857); /* Maintain aspect ratio */
+        min-height: 200px;
+        max-height: 240px;
     }
     
     .card-content {
@@ -221,11 +225,13 @@
     }
 }
 
+/* Responsive Design - Mobile */
 @media (max-width: 480px) {
     .Card-Container {
-        width: 100%;
-        max-width: 280px;
-        height: 200px;
+        width: calc(100vw - 2rem);
+        max-width: 320px;
+        height: calc((100vw - 2rem) * 0.857); /* Maintain aspect ratio */
+        max-height: 274px;
     }
     
     .card-content {
@@ -251,6 +257,39 @@
     .Card-Container .card-link {
         width: 2rem;
         font-size: 0.8rem;
+    }
+}
+
+/* Responsive Design - Small Mobile */
+@media (max-width: 360px) {
+    .Card-Container {
+        width: calc(100vw - 1.5rem);
+        height: calc((100vw - 1.5rem) * 0.857);
+    }
+    
+    .card-content {
+        padding: 0.75rem;
+    }
+    
+    .card-footer {
+        padding: 0.4rem 0.75rem;
+        height: 28px;
+    }
+    
+    .Card-Container h3 {
+        font-size: 0.85rem;
+        padding-right: 0.5rem;
+    }
+    
+    .Card-Container .card-stage {
+        font-size: 0.75rem;
+        right: 1.75rem;
+        padding: 0 0.2rem;
+    }
+    
+    .Card-Container .card-link {
+        width: 1.75rem;
+        font-size: 0.75rem;
     }
 }
 
