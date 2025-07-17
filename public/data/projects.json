@@ -44,6 +44,13 @@
             "stage": "Seed"
         },
         {
+            "name": "Rysk",
+            "website": "https://app.rysk.finance/",
+            "twitter": "https://x.com/ryskfinance",
+            "image": "https://pbs.twimg.com/profile_images/1556700928748781569/bLjEj9yu_400x400.jpg",
+            "stage": "Seed"
+        },
+        {
             "name": "GTE",
             "website": "https://www.gte.xyz/",
             "twitter": "https://x.com/GTE_XYZ",
