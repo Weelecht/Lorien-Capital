@@ -1,26 +1,18 @@
 import React from 'react';
+import './ResearchPage.css';
 
 export default function ResearchPage() {
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)',
-      color: '#ffffff',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingTop: '6rem'
-    }}>
-      <h1 style={{ 
-        fontSize: '3rem',
-        fontWeight: '700',
-        background: 'linear-gradient(135deg, #00ffff 0%, #ffffff 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text'
-      }}>
-        Research
-      </h1>
+    <div className="research-page">
+      <div className="research-container">
+        <header className="header">
+          <h1 className="header-title">Lorien-Research</h1>
+        </header>
+        
+        <div className="coming-soon-section">
+          <h2 className="coming-soon-title">Coming soon...</h2>
+        </div>
+      </div>
     </div>
   );
 }

@@ -11,10 +11,8 @@ import AboutPage from './pages/AboutPage';
 import ResearchPage from './pages/ResearchPage';
 import ToolsPage from './pages/ToolsPage';
 
-// Tool Pages
-import SherlockHlPage from './pages/tools/SherlockHlPage';
-import TapespeedHlPage from './pages/tools/TapespeedHlPage';
-import ModularDashboardPage from './pages/tools/ModularDashboardPage';
+// 404 Page
+import NotFoundPage from './pages/NotFoundPage';
 
 // Styles
 import './App.css';
@@ -29,9 +27,8 @@ export default function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/research" element={<ResearchPage />} />
         <Route path="/tools" element={<ToolsPage />} />
-        <Route path="/tools/sherlock-hl" element={<SherlockHlPage />} />
-        <Route path="/tools/tapespeed-hl" element={<TapespeedHlPage />} />
-        <Route path="/tools/modular-dashboard" element={<ModularDashboardPage />} />
+        <Route path="/tools/*" element={<NotFoundPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
       
       <Footer/>
