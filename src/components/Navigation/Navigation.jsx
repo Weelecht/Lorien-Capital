@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import "./Navigation.css"
 
 export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const location = useLocation();
   
   // Close menu when clicking outside
   useEffect(() => {
@@ -32,58 +34,6 @@ export default function Navigation() {
     };
   }, [isMenuOpen]);
   
-  const scrollToPortfolio = () => {
-    const portfolioSection = document.getElementById('portfolio');
-    if (portfolioSection) {
-      portfolioSection.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
-      });
-    }
-    setIsMenuOpen(false);
-  };
-
-  const scrollToAbout = () => {
-    const aboutSection = document.getElementById('about');
-    if (aboutSection) {
-      aboutSection.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
-      });
-    }
-    setIsMenuOpen(false);
-  };
-
-  const scrollToContact = () => {
-    const footerSection = document.querySelector('.Footer-Container');
-    if (footerSection) {
-      footerSection.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
-      });
-      
-      // Trigger flash animation after scrolling
-      setTimeout(() => {
-        const emailElement = document.getElementById('footer-email');
-        const twitterElement = document.getElementById('footer-twitter');
-        
-        if (emailElement) {
-          emailElement.classList.add('flash');
-          setTimeout(() => {
-            emailElement.classList.remove('flash');
-          }, 3000);
-        }
-        
-        if (twitterElement) {
-          twitterElement.classList.add('flash');
-          setTimeout(() => {
-            twitterElement.classList.remove('flash');
-          }, 3000);
-        }
-      }, 800); // Wait for scroll to complete
-    }
-    setIsMenuOpen(false);
-  };
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -104,19 +54,19 @@ export default function Navigation() {
 
       {/* Desktop navigation */}
       <ul className="nav-menu desktop-nav">
-        <li onClick={scrollToPortfolio}> Portfolio </li>
-        <li onClick={scrollToAbout}> About </li>
-        <li onClick={scrollToContact}> Contact </li>
-        <li> Writings </li>
+        <li><Link to="/" onClick={() => setIsMenuOpen(false)}>Home</Link></li>
+        <li><Link to="/about" onClick={() => setIsMenuOpen(false)}>About</Link></li>
+        <li><Link to="/research" onClick={() => setIsMenuOpen(false)}>Research</Link></li>
+        <li><Link to="/tools" onClick={() => setIsMenuOpen(false)}>Tools</Link></li>
       </ul>
 
       {/* Mobile navigation overlay */}
       <div className={`mobile-nav-overlay ${isMenuOpen ? 'open' : ''}`}>
         <ul className="nav-menu mobile-nav">
-          <li onClick={scrollToPortfolio}> Portfolio </li>
-          <li onClick={scrollToAbout}> About </li>
-          <li onClick={scrollToContact}> Contact </li>
-          <li> Writings </li>
+          <li><Link to="/" onClick={() => setIsMenuOpen(false)}>Home</Link></li>
+          <li><Link to="/about" onClick={() => setIsMenuOpen(false)}>About</Link></li>
+          <li><Link to="/research" onClick={() => setIsMenuOpen(false)}>Research</Link></li>
+          <li><Link to="/tools" onClick={() => setIsMenuOpen(false)}>Tools</Link></li>
         </ul>
       </div>
     </div>

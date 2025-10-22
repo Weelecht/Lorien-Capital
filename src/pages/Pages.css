@@ -1,0 +1,115 @@
+/* Page container styles */
+.page-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  color: #ffffff;
+  padding: 2rem;
+  padding-top: 6rem; /* Account for header */
+}
+
+.page-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 0;
+}
+
+.page-content h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  background: linear-gradient(135deg, #00ffff 0%, #ffffff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+}
+
+.page-content h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 2rem 0 1rem 0;
+  color: #00ffff;
+}
+
+.page-content p {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  margin-bottom: 1.5rem;
+  color: #cccccc;
+}
+
+.page-content ul {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.page-content li {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  margin-bottom: 0.5rem;
+  color: #cccccc;
+}
+
+/* Section styles */
+.about-section,
+.research-section,
+.tools-section {
+  margin: 3rem 0;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.about-section:hover,
+.research-section:hover,
+.tools-section:hover {
+  border-color: rgba(0, 255, 255, 0.3);
+  transition: border-color 0.3s ease;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 1rem;
+    padding-top: 5rem;
+  }
+  
+  .page-content h1 {
+    font-size: 2.5rem;
+  }
+  
+  .page-content h2 {
+    font-size: 1.5rem;
+  }
+  
+  .about-section,
+  .research-section,
+  .tools-section {
+    margin: 2rem 0;
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-container {
+    padding: 0.5rem;
+    padding-top: 4rem;
+  }
+  
+  .page-content h1 {
+    font-size: 2rem;
+  }
+  
+  .page-content h2 {
+    font-size: 1.3rem;
+  }
+  
+  .about-section,
+  .research-section,
+  .tools-section {
+    margin: 1.5rem 0;
+    padding: 1rem;
+  }
+}

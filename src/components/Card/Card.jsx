@@ -6,7 +6,6 @@ export default function Card({name, image, website, twitter, stage}) {
   const [dominantColor, setDominantColor] = useState('rgba(255, 255, 255, 0.3)');
   const [isHovered, setIsHovered] = useState(false);
 
-  console.log('Card props:', { name, image, website, twitter, stage }); // Debug log
 
   useEffect(() => {
     if (image) {

@@ -16,17 +16,21 @@ export const usePathfinding = (gridWidth, gridHeight) => {
   const [animationState, setAnimationState] = useState(null);
   const [cycleCount, setCycleCount] = useState(0);
   const [completionStartTime, setCompletionStartTime] = useState(null);
+  const [currentGraphData, setCurrentGraphData] = useState(null);
 
   // Refs
   const initialCycleStarted = useRef(false);
   const animationStepsRef = useRef([]);
   const lastAnimationTime = useRef(0);
 
-  // Generate graph structure
-  const graphData = useMemo(() => 
+  // Generate initial graph structure - only when grid dimensions change
+  const initialGraphData = useMemo(() => 
     generateGraphStructure(gridWidth, gridHeight, noiseSeed, noiseDetail), 
-    [gridWidth, gridHeight, noiseSeed, noiseDetail]
+    [gridWidth, gridHeight] // Only depend on grid size
   );
+
+  // Use current graph data if available, otherwise use initial
+  const graphData = currentGraphData || initialGraphData;
 
   // Calculate Manhattan distance
   const calculateDistance = useCallback((x1, y1, x2, y2) => {
@@ -134,8 +138,14 @@ export const usePathfinding = (gridWidth, gridHeight) => {
     const startKey = `${start.x},${start.y}`;
     const endKey = `${end.x},${end.y}`;
     
-    // Calculate new path
-    const result = findShortestGraphPath(startKey, endKey, graphData.nodes, graphData.edges);
+    // Generate new graph with new noise values
+    const newGraphData = generateGraphStructure(gridWidth, gridHeight, newNoiseSeed, newNoiseDetail);
+    
+    // Update the current graph data
+    setCurrentGraphData(newGraphData);
+    
+    // Calculate new path using the new graph
+    const result = findShortestGraphPath(startKey, endKey, newGraphData.nodes, newGraphData.edges);
     
     if (result.pathExists && result.path.length > 0) {
       // Create animation steps for smooth path progression
@@ -165,6 +175,13 @@ export const usePathfinding = (gridWidth, gridHeight) => {
       setTimeout(() => startNewCycle(), 100);
     }
   }, [generateRandomPoints, graphData.nodes, graphData.edges]);
+
+  // Initialize graph data on first mount
+  useEffect(() => {
+    if (!currentGraphData) {
+      setCurrentGraphData(initialGraphData);
+    }
+  }, [initialGraphData, currentGraphData]);
 
   // Auto-cycle effect - only run once to start first cycle
   useEffect(() => {
@@ -215,10 +232,10 @@ export const usePathfinding = (gridWidth, gridHeight) => {
             setPath(step.currentPath || []);
             setIsAnimating(false);
             
-            // Start next cycle after 3 seconds
+            // Start next cycle after 1 second
             setTimeout(() => {
               startNewCycle();
-            }, 3000);
+            }, 1000);
           }, animationSpeed);
         }
       } else {
