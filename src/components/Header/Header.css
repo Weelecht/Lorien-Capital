@@ -12,14 +12,18 @@
 }
 
 .Header-Container .header-title {
-    color: white;
+    color: white !important;
     padding: 1rem;
-    font-size: 1.5rem;
-    font-family: 'Open Sans', sans-serif;
-    font-weight: 500;
+    font-size: 1.5rem !important;
+    font-family: 'Open Sans', sans-serif !important;
+    font-weight: 500 !important;
     cursor: pointer;
     transition: opacity 0.3s ease, transform 0.2s ease;
     margin: 0;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    border-bottom: none !important;
+    display: block !important;
 }
 
 .Header-Container .header-title:hover {

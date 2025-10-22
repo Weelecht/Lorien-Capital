@@ -1,26 +1,34 @@
-import React from 'react';
+import { useState, useEffect } from 'react'
+import ToolsList from '../components/ToolsList/ToolsList'
+import './ToolsPage.css'
 
-export default function ToolsPage() {
+function ToolsPage() {
+
+  const [projects, setProject] = useState();
+
+  useEffect(()=> {
+    const fetchData = async() => {
+      const res = await fetch(`/data/tools.json`);
+      const data = await res.json();
+      console.log(data.tools[0])
+      setProject(data); 
+    }
+
+    fetchData();
+  },[])
+
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)',
-      color: '#ffffff',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingTop: '6rem'
-    }}>
-      <h1 style={{ 
-        fontSize: '3rem',
-        fontWeight: '700',
-        background: 'linear-gradient(135deg, #00ffff 0%, #ffffff 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text'
-      }}>
-        Tools
-      </h1>
+    <div className="tools-page">
+      {projects ? (
+        <ToolsList projects={projects} />
+      ) : (
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Loading tools...</p>
+        </div>
+      )}
     </div>
-  );
+  )
 }
+
+export default ToolsPage

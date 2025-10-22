@@ -1,0 +1,15 @@
+{
+    "tools": [
+        {
+            "name": "Sherlock-Hl",
+            "url": "/tools/sherlock-hl"
+            
+        }, {
+            "name": "Tapespeed-Hl",
+            "url": "/tools/tapespeed-hl"
+        } , {
+            "name": "Modular Dashboard",
+            "url": "/tools/modular-dashboard"
+        }
+    ]
+}
