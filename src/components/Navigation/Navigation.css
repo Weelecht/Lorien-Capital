@@ -43,6 +43,26 @@
     background: rgba(255, 255, 255, 0.1);
 }
 
+.nav-menu.desktop-nav li.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.nav-menu.desktop-nav li.disabled span {
+    color: #888888;
+}
+
+.nav-menu.mobile-nav li.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.nav-menu.mobile-nav li.disabled span {
+    color: #888888;
+}
+
 /* Hamburger Menu */
 .hamburger-menu {
     display: none;

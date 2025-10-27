@@ -55,7 +55,7 @@ export default function Navigation() {
       {/* Desktop navigation */}
       <ul className="nav-menu desktop-nav">
         <li><Link to="/" onClick={() => setIsMenuOpen(false)}>Home</Link></li>
-        <li><Link to="/about" onClick={() => setIsMenuOpen(false)}>About</Link></li>
+        <li className="disabled"><span>About</span></li>
         <li><Link to="/research" onClick={() => setIsMenuOpen(false)}>Research</Link></li>
         <li><Link to="/tools" onClick={() => setIsMenuOpen(false)}>Tools</Link></li>
       </ul>
@@ -64,7 +64,7 @@ export default function Navigation() {
       <div className={`mobile-nav-overlay ${isMenuOpen ? 'open' : ''}`}>
         <ul className="nav-menu mobile-nav">
           <li><Link to="/" onClick={() => setIsMenuOpen(false)}>Home</Link></li>
-          <li><Link to="/about" onClick={() => setIsMenuOpen(false)}>About</Link></li>
+          <li className="disabled"><span>About</span></li>
           <li><Link to="/research" onClick={() => setIsMenuOpen(false)}>Research</Link></li>
           <li><Link to="/tools" onClick={() => setIsMenuOpen(false)}>Tools</Link></li>
         </ul>
