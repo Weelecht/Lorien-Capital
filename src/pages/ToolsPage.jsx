@@ -10,8 +10,7 @@ function ToolsPage() {
     const fetchData = async() => {
       const res = await fetch(`/data/tools.json`);
       const data = await res.json();
-      console.log(data.tools[0])
-      setProject(data); 
+      setProject(data);
     }
 
     fetchData();

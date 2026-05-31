@@ -1,295 +1,260 @@
-import React, { useRef, useMemo, useCallback } from 'react';
+import React, { useRef, useMemo, useLayoutEffect, useEffect } from 'react';
 import * as THREE from 'three';
 import { Line } from '@react-three/drei';
+import { coordToKey } from '../utils/dijkstra';
 
-const GraphVisualization = ({ 
-  position, 
-  startPoint, 
-  endPoint, 
-  pathKeys, 
-  graphData, 
-  animationState, 
-  gridWidth, 
-  gridHeight, 
-  isAnimating, 
-  path 
+const SKIP = 2;
+const WEIGHT_MIN = 0.1;
+const WEIGHT_MAX = 25.0;
+const SIZE_MIN = 0.4;
+const SIZE_MAX = 2.5;
+const HEIGHT_MIN = 0.3;
+const HEIGHT_MAX = 4.0;
+
+const sizeForWeight = (weight) => {
+  const normalized = Math.max(0, Math.min(1, (weight - WEIGHT_MIN) / (WEIGHT_MAX - WEIGHT_MIN)));
+  const curved = Math.pow(normalized, 0.8);
+  return {
+    size: SIZE_MIN + (SIZE_MAX - SIZE_MIN) * curved,
+    height: HEIGHT_MIN + (HEIGHT_MAX - HEIGHT_MIN) * curved,
+    grayLinear: 1 - normalized,
+  };
+};
+
+// Albedo color (multiplied by lights). Path/current colors are bright so even
+// without lighting the cube reads as glowing — the emissive channel below adds
+// self-illumination on top of that.
+const COLOR_START = new THREE.Color('#00ff00');
+const COLOR_END = new THREE.Color('#ff0000');
+const COLOR_CURRENT = new THREE.Color('#ffffff');
+const COLOR_PATH = new THREE.Color('#e8f4ff');
+
+// Per-instance emissive HDR values (>1.0 is fine, bloom catches them).
+// Format: [r, g, b].
+const EMISSIVE_START = [0.0, 2.4, 0.0];
+const EMISSIVE_END = [2.4, 0.0, 0.0];
+const EMISSIVE_CURRENT = [4.0, 4.0, 4.0];
+const EMISSIVE_PATH = [2.2, 2.5, 3.1];
+
+const GraphVisualization = ({
+  position,
+  startPoint,
+  endPoint,
+  pathKeys,
+  graphData,
+  animationState,
+  isAnimating,
+  path,
 }) => {
-  const meshRefs = useRef([]);
-  const skip = 2;
+  const meshRef = useRef();
+  const prevHighlightsRef = useRef(new Set());
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const tmpColor = useMemo(() => new THREE.Color(), []);
 
-  const { nodes, edges } = graphData;
+  const { nodes, gridWidth, gridHeight } = graphData;
+  const halfW = ((gridWidth - 1) * SKIP) / 2;
+  const halfH = ((gridHeight - 1) * SKIP) / 2;
+  const count = nodes.size;
 
-  // Calculate centering offset based on rectangular grid size - center at world origin
-  const totalSizeWidth = (gridWidth - 1) * skip;
-  const totalSizeHeight = (gridHeight - 1) * skip;
-  const halfSizeWidth = totalSizeWidth / 2;
-  const halfSizeHeight = totalSizeHeight / 2;
+  // Owned geometry so we can attach a per-instance emissive attribute to it.
+  const geometry = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
 
-  // PERFORMANCE OPTIMIZATION: Shared geometries and materials
-  const sharedGeometry = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
-  
-  // Create shared materials for different node types
-  const sharedMaterials = useMemo(() => ({
-    default: new THREE.MeshStandardMaterial({
-      roughness: 0.9,
+  // Material with per-instance emissive injected via onBeforeCompile.
+  const material = useMemo(() => {
+    const mat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.85,
       metalness: 0.0,
-      color: '#808080'
-    }),
-    start: new THREE.MeshStandardMaterial({
-      color: '#00ff00',
-      emissive: '#00ff00',
-      emissiveIntensity: 1.0,
-      roughness: 0.9,
-      metalness: 0.0
-    }),
-    end: new THREE.MeshStandardMaterial({
-      color: '#ff0000',
-      emissive: '#ff0000',
-      emissiveIntensity: 1.0,
-      roughness: 0.9,
-      metalness: 0.0
-    }),
-    current: new THREE.MeshStandardMaterial({
-      color: '#aa00ff',
-      emissive: '#aa00ff',
-      emissiveIntensity: 1.5,
-      roughness: 0.9,
-      metalness: 0.0
-    }),
-    path: new THREE.MeshStandardMaterial({
-      color: '#00ffff',
-      emissive: '#ffffff',
-      emissiveIntensity: 1.2,
-      roughness: 0.9,
-      metalness: 0.0
-    }),
-    completed: new THREE.MeshStandardMaterial({
-      color: '#00ffff',
-      emissive: '#ffffff',
-      emissiveIntensity: 1.2,
-      roughness: 0.9,
-      metalness: 0.0
-    })
-  }), []);
+    });
+    mat.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          '#include <common>',
+          `#include <common>
+           attribute vec3 instanceEmissive;
+           varying vec3 vInstanceEmissive;`
+        )
+        .replace(
+          '#include <begin_vertex>',
+          `#include <begin_vertex>
+           vInstanceEmissive = instanceEmissive;`
+        );
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          '#include <common>',
+          `#include <common>
+           varying vec3 vInstanceEmissive;`
+        )
+        .replace(
+          'vec3 totalEmissiveRadiance = emissive;',
+          'vec3 totalEmissiveRadiance = emissive + vInstanceEmissive;'
+        );
+    };
+    return mat;
+  }, []);
 
-  // PERFORMANCE OPTIMIZATION: Cache node size calculations
-  const nodeSizeCache = useMemo(() => {
-    const cache = new Map();
-    for (const [nodeKey, node] of nodes.entries()) {
-      const weight = node.weight;
-      
-      // WEIGHT TO SIZE MAPPING:
-      // Higher weight = More difficult terrain = Larger, more imposing obstacles
-      // Lower weight = Easier terrain = Smaller, less obstructive cubes
-      
-      const minWeight = 0.1;   // Easiest terrain (small cubes)
-      const maxWeight = 25.0;  // Most difficult terrain (large cubes)
-      const minSize = 0.4;     // Minimum cube width/depth for easy terrain
-      const maxSize = 2.5;     // Maximum cube width/depth for difficult terrain
-      const minHeight = 0.3;   // Minimum cube height for easy terrain  
-      const maxHeight = 4.0;   // Maximum cube height for difficult terrain
-      
-      // Normalize weight to 0-1 range (0 = easiest, 1 = most difficult)
-      const normalizedWeight = Math.max(0, Math.min(1, (weight - minWeight) / (maxWeight - minWeight)));
-      
-      // Apply curve for better visual distinction (makes differences more apparent)
-      const curvedWeight = Math.pow(normalizedWeight, 0.8);
-      
-      // Calculate size: Higher weight → Larger size (more imposing obstacles)
-      const size = minSize + (maxSize - minSize) * curvedWeight;
-      const height = minHeight + (maxHeight - minHeight) * curvedWeight;
-      
-      cache.set(nodeKey, { 
-        width: size, 
-        depth: size, 
-        height: height
-      });
+  // Pre-compute static per-node data once per graph regen.
+  const { keyToIndex, baseColors } = useMemo(() => {
+    const k2i = new Map();
+    const base = new Float32Array(count * 3);
+    let i = 0;
+    for (const [key, node] of nodes.entries()) {
+      const { grayLinear } = sizeForWeight(node.weight);
+      k2i.set(key, i);
+      base[i * 3] = grayLinear;
+      base[i * 3 + 1] = grayLinear;
+      base[i * 3 + 2] = grayLinear;
+      i++;
     }
-    return cache;
-  }, [nodes]);
+    return { keyToIndex: k2i, baseColors: base };
+  }, [nodes, count]);
 
-  const getNodeSize = useCallback((nodeKey) => {
-    return nodeSizeCache.get(nodeKey) || { width: 0.4, depth: 0.4, height: 0.3 };
-  }, [nodeSizeCache]);
+  // (Re)attach per-instance emissive attribute whenever node count changes.
+  useEffect(() => {
+    const attr = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3);
+    attr.setUsage(THREE.DynamicDrawUsage);
+    geometry.setAttribute('instanceEmissive', attr);
+    return () => {
+      geometry.deleteAttribute('instanceEmissive');
+    };
+  }, [count, geometry]);
 
-  // Create edge lines with dynamic styling - only show path edges for performance
-  const edgeLines = useMemo(() => {
-    const lines = [];
-    
-    // Show current path edges during animation, or completed path edges during pause
-    let pathToShow = null;
-    
-    if (animationState && animationState.currentPath && animationState.currentPath.length >= 2) {
-      // During animation - show current path
-      pathToShow = animationState.currentPath;
-    } else if (!isAnimating && path && path.length >= 2) {
-      // During completion pause - show full completed path
-      pathToShow = path;
+  // Layout pass: matrices + base colors + zero emissive. Runs on graph regen.
+  useLayoutEffect(() => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    let i = 0;
+    for (const node of nodes.values()) {
+      const { size, height } = sizeForWeight(node.weight);
+      dummy.position.set(
+        node.x * SKIP - halfW + position[0],
+        node.y * SKIP - halfH + position[1],
+        position[2] + height / 2
+      );
+      dummy.scale.set(size, height, size);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+      tmpColor.setRGB(baseColors[i * 3], baseColors[i * 3 + 1], baseColors[i * 3 + 2]);
+      mesh.setColorAt(i, tmpColor);
+      i++;
     }
-    
-    if (!pathToShow || pathToShow.length < 2) {
-      return lines;
-    }
-    
-    // Only render edges for the path
-    for (let i = 0; i < pathToShow.length - 1; i++) {
-      const nodeKey1 = pathToShow[i];
-      const nodeKey2 = pathToShow[i + 1];
-      
-      const node1 = nodes.get(nodeKey1);
-      const node2 = nodes.get(nodeKey2);
-      
-      if (!node1 || !node2) continue;
-      
-      // Get cube heights for proper centering
-      const startNodeSize = getNodeSize(nodeKey1);
-      const endNodeSize = getNodeSize(nodeKey2);
-      
-      const startPos = [
-        node1.x * skip - halfSizeWidth + position[0],
-        node1.y * skip - halfSizeHeight + position[1],
-        position[2] + startNodeSize.height / 2
-      ];
-      const endPos = [
-        node2.x * skip - halfSizeWidth + position[0],
-        node2.y * skip - halfSizeHeight + position[1],
-        position[2] + endNodeSize.height / 2
-      ];
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
 
-      lines.push({
-        id: `path-${nodeKey1}-${nodeKey2}`,
-        points: [startPos, endPos],
-        color: '#00ffff', // Always cyan for consistency
-        opacity: 1.0,
-        lineWidth: 3.5
-      });
+    const emissive = mesh.geometry.getAttribute('instanceEmissive');
+    if (emissive) {
+      emissive.array.fill(0);
+      emissive.needsUpdate = true;
     }
-    
-    return lines;
-  }, [nodes, position, skip, halfSizeWidth, halfSizeHeight, getNodeSize, animationState, isAnimating, path]);
+    prevHighlightsRef.current = new Set();
+  }, [nodes, baseColors, halfW, halfH, position, dummy, tmpColor]);
 
-  // PERFORMANCE OPTIMIZATION: Group nodes by material type to reduce state changes
-  const nodeGroups = useMemo(() => {
-    const groups = {
-      critical: [], // Start, end, current nodes
-      path: [],     // Path nodes
-      completed: [], // Completed path nodes (yellow)
-      terrain: []   // Regular terrain nodes
+  // Highlight pass: only touch instances whose state changed.
+  useLayoutEffect(() => {
+    const mesh = meshRef.current;
+    if (!mesh || !mesh.instanceColor) return;
+    const colors = mesh.instanceColor.array;
+    const emissiveAttr = mesh.geometry.getAttribute('instanceEmissive');
+    if (!emissiveAttr) return;
+    const emissive = emissiveAttr.array;
+    const base = baseColors;
+    const prev = prevHighlightsRef.current;
+    const next = new Set();
+
+    const write = (idx, color, emissiveTriple) => {
+      colors[idx * 3] = color.r;
+      colors[idx * 3 + 1] = color.g;
+      colors[idx * 3 + 2] = color.b;
+      emissive[idx * 3] = emissiveTriple[0];
+      emissive[idx * 3 + 1] = emissiveTriple[1];
+      emissive[idx * 3 + 2] = emissiveTriple[2];
+      next.add(idx);
     };
 
-    for (const [nodeKey, node] of nodes.entries()) {
-      const nodeSize = getNodeSize(nodeKey);
-      
-      // Determine node type for material selection
-      const isStart = startPoint && node.x === startPoint.x && node.y === startPoint.y;
-      const isEnd = endPoint && node.x === endPoint.x && node.y === endPoint.y;
-      const isCurrent = animationState && animationState.current === nodeKey;
-      const isInCurrentPath = animationState && isAnimating && animationState.currentPath?.includes(nodeKey);
-      const isInCompletedPath = !isAnimating && pathKeys?.has(nodeKey);
-      
-      const nodeData = {
-        key: nodeKey,
-        position: [
-          node.x * skip - halfSizeWidth + position[0],
-          node.y * skip - halfSizeHeight + position[1],
-          position[2] + nodeSize.height / 2
-        ],
-        scale: [nodeSize.width, nodeSize.height, nodeSize.depth],
-        nodeType: isStart ? 'start' : isEnd ? 'end' : isCurrent ? 'current' : 
-                  isInCurrentPath ? 'path' : isInCompletedPath ? 'completed' : 'terrain',
-        terrainColor: (() => {
-          // Only calculate terrain color for terrain nodes
-          if (isStart || isEnd || isCurrent || isInCurrentPath || isInCompletedPath) return null;
-          
-          const weight = node.weight;
-          const minWeight = 0.1;
-          const maxWeight = 25.0;
-          const normalizedWeight = Math.max(0, Math.min(1, (weight - minWeight) / (maxWeight - minWeight)));
-          const grayValue = Math.floor(255 * (1 - normalizedWeight));
-          return `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
-        })()
-      };
+    // Restore previously highlighted instances to base.
+    for (const idx of prev) {
+      colors[idx * 3] = base[idx * 3];
+      colors[idx * 3 + 1] = base[idx * 3 + 1];
+      colors[idx * 3 + 2] = base[idx * 3 + 2];
+      emissive[idx * 3] = 0;
+      emissive[idx * 3 + 1] = 0;
+      emissive[idx * 3 + 2] = 0;
+    }
 
-      if (isStart || isEnd || isCurrent) {
-        groups.critical.push(nodeData);
-      } else if (isInCurrentPath) {
-        groups.path.push(nodeData);
-      } else if (isInCompletedPath) {
-        groups.completed.push(nodeData);
-      } else {
-        groups.terrain.push(nodeData);
+    const activePath = animationState?.currentPath;
+    if (activePath) {
+      for (const k of activePath) {
+        const idx = keyToIndex.get(k);
+        if (idx !== undefined) write(idx, COLOR_PATH, EMISSIVE_PATH);
+      }
+    } else if (!isAnimating && pathKeys && pathKeys.size) {
+      for (const k of pathKeys) {
+        const idx = keyToIndex.get(k);
+        if (idx !== undefined) write(idx, COLOR_PATH, EMISSIVE_PATH);
       }
     }
 
-    return groups;
-  }, [nodes, getNodeSize, startPoint, endPoint, animationState, pathKeys, skip, halfSizeWidth, halfSizeHeight, position, isAnimating]);
+    if (animationState?.current !== undefined) {
+      const idx = keyToIndex.get(animationState.current);
+      if (idx !== undefined) write(idx, COLOR_CURRENT, EMISSIVE_CURRENT);
+    }
+
+    if (startPoint) {
+      const idx = keyToIndex.get(coordToKey(startPoint.x, startPoint.y, gridWidth));
+      if (idx !== undefined) write(idx, COLOR_START, EMISSIVE_START);
+    }
+    // End node stays dark until the path reaches it (i.e. completion).
+    const pathComplete = !isAnimating && path && path.length > 0;
+    if (endPoint && pathComplete) {
+      const idx = keyToIndex.get(coordToKey(endPoint.x, endPoint.y, gridWidth));
+      if (idx !== undefined) write(idx, COLOR_END, EMISSIVE_END);
+    }
+
+    prevHighlightsRef.current = next;
+    mesh.instanceColor.needsUpdate = true;
+    emissiveAttr.needsUpdate = true;
+  }, [animationState, startPoint, endPoint, isAnimating, path, pathKeys, keyToIndex, baseColors, gridWidth]);
+
+  // Single Line through the visited path.
+  const linePoints = useMemo(() => {
+    let pts = null;
+    if (animationState?.currentPath && animationState.currentPath.length >= 2) {
+      pts = animationState.currentPath;
+    } else if (!isAnimating && path && path.length >= 2) {
+      pts = path;
+    }
+    if (!pts) return null;
+
+    const out = new Array(pts.length);
+    for (let i = 0; i < pts.length; i++) {
+      const node = nodes.get(pts[i]);
+      if (!node) {
+        out[i] = [0, 0, 0];
+        continue;
+      }
+      const { height } = sizeForWeight(node.weight);
+      out[i] = [
+        node.x * SKIP - halfW + position[0],
+        node.y * SKIP - halfH + position[1],
+        position[2] + height / 2,
+      ];
+    }
+    return out;
+  }, [animationState, isAnimating, path, nodes, halfW, halfH, position]);
 
   return (
     <>
-      {/* Draw edges with dynamic styling */}
-      {edgeLines.map((line) => (
-        <Line
-          key={line.id}
-          points={line.points}
-          color={line.color}
-          lineWidth={line.lineWidth}
-          transparent
-          opacity={line.opacity}
-        />
-      ))}
-      
-      {/* PERFORMANCE OPTIMIZATION: Render critical nodes with shadows */}
-      {nodeGroups.critical.map((nodeData) => (
-        <mesh
-          key={nodeData.key}
-          position={nodeData.position}
-          scale={nodeData.scale}
-          castShadow
-          receiveShadow
-          geometry={sharedGeometry}
-          material={sharedMaterials[nodeData.nodeType]}
-        />
-      ))}
-      
-      {/* PERFORMANCE OPTIMIZATION: Render path nodes without shadows */}
-      {nodeGroups.path.map((nodeData) => (
-        <mesh
-          key={nodeData.key}
-          position={nodeData.position}
-          scale={nodeData.scale}
-          geometry={sharedGeometry}
-          material={sharedMaterials.path}
-        />
-      ))}
-      
-      {/* PERFORMANCE OPTIMIZATION: Render completed path nodes */}
-      {nodeGroups.completed.map((nodeData) => (
-        <mesh
-          key={nodeData.key}
-          position={nodeData.position}
-          scale={nodeData.scale}
-          geometry={sharedGeometry}
-          material={sharedMaterials.completed}
-        />
-      ))}
-      
-      {/* PERFORMANCE OPTIMIZATION: Render terrain nodes with dynamic colors */}
-      {nodeGroups.terrain.map((nodeData) => (
-        <mesh
-          key={nodeData.key}
-          position={nodeData.position}
-          scale={nodeData.scale}
-          geometry={sharedGeometry}
-        >
-          <meshStandardMaterial 
-            color={nodeData.terrainColor}
-            roughness={0.9}
-            metalness={0.0}
-          />
-        </mesh>
-      ))}
+      <instancedMesh
+        ref={meshRef}
+        args={[geometry, material, count]}
+        frustumCulled={false}
+      />
+
+      {linePoints && (
+        <Line points={linePoints} color="#ffffff" lineWidth={3.5} transparent opacity={1.0} />
+      )}
     </>
   );
 };
 
-export default GraphVisualization; 
+export default GraphVisualization;

@@ -10,15 +10,10 @@ export default function PortfolioHeading() {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       
-      // Trigger immediately when scrolling down
       if (currentScrollY > 50) {
         setIsScrolled(true);
-        console.log('Scroll: Adding scrolled class, scrollY:', currentScrollY);
-      } 
-      // Revert when scrolling up to near the top
-      else if (currentScrollY < 50) {
+      } else if (currentScrollY < 50) {
         setIsScrolled(false);
-        console.log('Scroll: Removing scrolled class, scrollY:', currentScrollY);
       }
       
       setLastScrollY(currentScrollY);

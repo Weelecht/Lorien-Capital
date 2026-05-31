@@ -1,49 +1,44 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 
-// Responsive camera component that adjusts to window size
+const FOV_DEG = 60;
+const FOV_RAD = (FOV_DEG * Math.PI) / 180;
+const TAN_HALF_FOV = Math.tan(FOV_RAD / 2);
+const PADDING = 1.1;
+const MIN_DISTANCE = 20;
+const MAX_DISTANCE = 150;
+const SKIP = 2;
+const DOLLY_AMPLITUDE = 1.5;
+const DOLLY_HZ = 0.0133;
+
 const ResponsiveCamera = ({ target = [0, 0, 0], gridWidth, gridHeight }) => {
   const { camera, size } = useThree();
-  
+  const baseDistanceRef = useRef(80);
+
   useEffect(() => {
-    // Calculate optimal camera distance to fit grid in viewport
-    const aspectRatio = size.width / size.height;
-    
-    // Calculate the grid's actual world size
-    const skip = 2;
-    const worldWidth = (gridWidth - 1) * skip;
-    const worldHeight = (gridHeight - 1) * skip;
-    
-    // Camera field of view
-    const fov = 60; // degrees
-    const fovRadians = (fov * Math.PI) / 180;
-    
-    // Calculate distance needed to fit the grid with some padding
-    const padding = 1.1; // 10% padding around the grid
-    
-    // Calculate distance for height constraint
-    const distanceForHeight = (worldHeight * padding) / (2 * Math.tan(fovRadians / 2));
-    
-    // Calculate distance for width constraint
-    const distanceForWidth = (worldWidth * padding) / (2 * Math.tan(fovRadians / 2) * aspectRatio);
-    
-    // Use the larger distance to ensure full grid is visible
-    let cameraDistance = Math.max(distanceForHeight, distanceForWidth);
-    
-    // Ensure reasonable distance bounds
-    cameraDistance = Math.max(20, Math.min(150, cameraDistance));
-    
-    // Update camera position
-    camera.position.set(0, 0, cameraDistance);
+    const aspect = size.width / size.height;
+    const worldW = (gridWidth - 1) * SKIP;
+    const worldH = (gridHeight - 1) * SKIP;
+
+    const dForHeight = (worldH * PADDING) / (2 * TAN_HALF_FOV);
+    const dForWidth = (worldW * PADDING) / (2 * TAN_HALF_FOV * aspect);
+
+    let distance = Math.max(dForHeight, dForWidth);
+    distance = Math.max(MIN_DISTANCE, Math.min(MAX_DISTANCE, distance));
+
+    baseDistanceRef.current = distance;
+    camera.position.set(0, 0, distance);
     camera.lookAt(...target);
     camera.updateProjectionMatrix();
   }, [camera, size, target, gridWidth, gridHeight]);
 
-  useFrame(() => {
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+    camera.position.z = baseDistanceRef.current + Math.sin(t * Math.PI * 2 * DOLLY_HZ) * DOLLY_AMPLITUDE;
     camera.lookAt(...target);
   });
 
   return null;
 };
 
-export default ResponsiveCamera; 
+export default ResponsiveCamera;

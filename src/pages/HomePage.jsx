@@ -1,25 +1,40 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { GizmoHelper, GizmoViewport } from '@react-three/drei';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { ACESFilmicToneMapping, SRGBColorSpace } from 'three';
 
-// Components
 import GraphVisualization from '../components/GraphVisualization';
 import ResponsiveCamera from '../components/ResponsiveCamera';
 import SceneLighting from '../components/SceneLighting';
-import Content from "../components/Content/Content";
+import Content from '../components/Content/Content';
 import FundName from '../components/FundName/FundName';
 import ContactForm from '../components/ContactForm';
 import PortfolioHeading from '../components/PortfolioHeading';
 
-// Hooks
 import { useResponsiveGrid } from '../hooks/useResponsiveGrid';
 import { usePathfinding } from '../hooks/usePathfinding';
 
-// Styles
 import '../App.css';
 
+const MOBILE_QUERY = '(max-width: 768px)';
+const LANDSCAPE_PHONE_QUERY = '(orientation: landscape) and (max-height: 600px)';
+
+const useMediaQuery = (query) => {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(query).matches : false
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia(query);
+    const handler = (e) => setMatches(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, [query]);
+
+  return matches;
+};
+
 export default function HomePage() {
-  // Custom hooks for modular functionality
   const { gridWidth, gridHeight } = useResponsiveGrid();
   const {
     startPoint,
@@ -29,88 +44,52 @@ export default function HomePage() {
     animationState,
     isAnimating,
     completionStartTime,
-    graphData
+    graphData,
   } = usePathfinding(gridWidth, gridHeight);
 
-  // State for landscape mode
-  const [isLandscape, setIsLandscape] = React.useState(false);
+  const isMobile = useMediaQuery(MOBILE_QUERY);
+  const isLandscape = useMediaQuery(LANDSCAPE_PHONE_QUERY);
 
-  // Detect mobile device for performance optimization
-  const isMobile = window.innerWidth <= 768;
-
-  // Handle phone rotation - simpler approach
-  React.useEffect(() => {
-    const handleOrientationChange = () => {
-      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      const isLandscapeMode = window.innerHeight < window.innerWidth;
-      
-      if (isMobileDevice && isLandscapeMode && window.innerHeight < 600) {
-        setIsLandscape(true);
-        // Add landscape class to body for CSS targeting
-        document.body.classList.add('landscape-mode');
-      } else {
-        setIsLandscape(false);
-        document.body.classList.remove('landscape-mode');
-      }
-    };
-
-    // Initial check
-    handleOrientationChange();
-
-    // Listen for orientation changes
-    window.addEventListener('orientationchange', handleOrientationChange);
-    window.addEventListener('resize', handleOrientationChange);
-
-    return () => {
-      window.removeEventListener('orientationchange', handleOrientationChange);
-      window.removeEventListener('resize', handleOrientationChange);
-      document.body.classList.remove('landscape-mode');
-    };
-  }, []);
+  useEffect(() => {
+    document.body.classList.toggle('landscape-mode', isLandscape);
+    return () => document.body.classList.remove('landscape-mode');
+  }, [isLandscape]);
 
   return (
     <div className={`Canvas-Container ${isLandscape ? 'landscape-mode' : ''}`}>
-      <FundName/> 
-      <PortfolioHeading/>
+      <FundName />
+      <PortfolioHeading />
 
       <Canvas
-        style={{ 
+        style={{
           backgroundColor: 'black',
           display: 'block',
           width: '100%',
-          height: isLandscape ? '100vh' : '100vh',
-          position: 'relative'
+          height: '100vh',
+          position: 'relative',
         }}
-        camera={{ 
-          fov: isMobile ? 70 : 60, // Wider FOV for mobile
+        camera={{
+          fov: isMobile ? 70 : 60,
           position: [0, 0, 80],
           near: 0.1,
-          far: 1000
+          far: 1000,
         }}
-        dpr={isMobile ? [1, 1] : [1, 1.5]} // Lower DPR for mobile performance
-        onCreated={({ gl }) => {
-          gl.setSize(window.innerWidth, window.innerHeight);
-          // Optimize WebGL settings for performance
-          gl.powerPreference = "high-performance";
-          gl.antialias = !isMobile; // Disable antialiasing on mobile for better performance
-          gl.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1 : 1.5));
-        }}
+        dpr={isMobile ? [1, 1] : [1, 1.5]}
         gl={{
           alpha: false,
           antialias: !isMobile,
-          powerPreference: "high-performance",
+          powerPreference: 'high-performance',
           stencil: false,
-          depth: true
+          depth: true,
+        }}
+        onCreated={({ gl }) => {
+          gl.toneMapping = ACESFilmicToneMapping;
+          gl.toneMappingExposure = 1.0;
+          gl.outputColorSpace = SRGBColorSpace;
         }}
       >
-        {/* Camera that adapts to grid size */}
-        <ResponsiveCamera 
-          target={[0, 0, 0]} 
-          gridWidth={gridWidth} 
-          gridHeight={gridHeight} 
-        />
+        <ResponsiveCamera target={[0, 0, 0]} gridWidth={gridWidth} gridHeight={gridHeight} />
 
-        {/* All lighting logic */}
         <SceneLighting
           startPoint={startPoint}
           endPoint={endPoint}
@@ -124,24 +103,30 @@ export default function HomePage() {
           gridHeight={gridHeight}
         />
 
-        {/* 3D Graph visualization */}
-        <GraphVisualization 
-          position={[0, 0, 0]} 
+        <GraphVisualization
+          position={[0, 0, 0]}
           startPoint={startPoint}
           endPoint={endPoint}
           pathKeys={pathKeys}
           graphData={graphData}
           animationState={animationState}
-          gridWidth={gridWidth}
-          gridHeight={gridHeight}
           isAnimating={isAnimating}
           path={path}
         />
+
+        <EffectComposer disableNormalPass multisampling={isMobile ? 0 : 2}>
+          <Bloom
+            intensity={isMobile ? 0.6 : 0.9}
+            luminanceThreshold={0.4}
+            luminanceSmoothing={0.2}
+            mipmapBlur
+          />
+        </EffectComposer>
       </Canvas>
 
       <div className="content-wrapper">
-        <Content/>
-        <ContactForm/>
+        <Content />
+        <ContactForm />
       </div>
     </div>
   );

@@ -12,11 +12,9 @@ export default function Projects() {
     const fetchProjects = async() => {
       try {
         const _projects = await getProjects();
-        console.log(_projects);
         setProjects(_projects);
-
       } catch(error) {
-        console.log(error);
+        // swallow — UI shows loading state until data arrives
       }
     }
 
