@@ -92,7 +92,7 @@
     padding: 0 0.5rem;
     white-space: nowrap;
     position: absolute;
-    right: 2.5rem;
+    right: 3.5rem;
     top: 50%;
     transform: translateY(-50%);
     display: flex;
@@ -124,8 +124,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.5rem;
+    width: 3.5rem;
     height: 100%;
+    aspect-ratio: 1;
     transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
     border-radius: 0;
 }
@@ -150,8 +151,8 @@
     .card-content { padding: 1.2rem; }
     .card-footer { padding: 0.8rem 1.2rem; height: 48px; }
     .Card-Container h3 { font-size: 0.9rem; padding-right: 0.8rem; }
-    .Card-Container .card-stage { font-size: 0.8rem; right: 2rem; padding: 0 0.4rem; }
-    .Card-Container .card-link { width: 2rem; font-size: 0.8rem; }
+    .Card-Container .card-stage { font-size: 0.8rem; right: 3rem; padding: 0 0.4rem; }
+    .Card-Container .card-link { width: 3rem; font-size: 0.8rem; }
 }
 
 /* Responsive Design - Mobile */
@@ -160,8 +161,8 @@
     .card-content { padding: 1rem; }
     .card-footer { padding: 0.6rem 1rem; height: 40px; }
     .Card-Container h3 { font-size: 0.75rem; padding-right: 0.6rem; }
-    .Card-Container .card-stage { font-size: 0.65rem; right: 1.6rem; padding: 0 0.3rem; }
-    .Card-Container .card-link { width: 1.6rem; font-size: 0.65rem; }
+    .Card-Container .card-stage { font-size: 0.65rem; right: 2.5rem; padding: 0 0.3rem; }
+    .Card-Container .card-link { width: 2.5rem; font-size: 0.65rem; }
 }
 
 /* Responsive Design - Small Mobile */
@@ -170,8 +171,8 @@
     .card-content { padding: 0.8rem; }
     .card-footer { padding: 0.5rem 0.8rem; height: 36px; }
     .Card-Container h3 { font-size: 0.65rem; padding-right: 0.5rem; }
-    .Card-Container .card-stage { font-size: 0.55rem; right: 1.4rem; padding: 0 0.25rem; }
-    .Card-Container .card-link { width: 1.4rem; font-size: 0.55rem; }
+    .Card-Container .card-stage { font-size: 0.55rem; right: 2.25rem; padding: 0 0.25rem; }
+    .Card-Container .card-link { width: 2.25rem; font-size: 0.55rem; }
 }
 
 /* Touch-friendly interactions */
