@@ -1,13 +1,13 @@
 .not-found-page {
   min-height: 100vh;
-  background: #000;
-  color: #fff;
+  background: var(--bg-0);
+  color: var(--text-0);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  padding-top: 8rem; /* Account for main header */
-  font-family: 'Courier New', 'Monaco', 'Consolas', monospace;
+  padding-top: 8rem;
+  font-family: var(--font-body);
 }
 
 .not-found-container {
@@ -26,7 +26,7 @@
   max-width: 300px;
   height: auto;
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.2);
+  box-shadow: var(--shadow-lg);
 }
 
 .error-title {
@@ -34,9 +34,9 @@
   top: -40px;
   left: 0;
   font-size: 2rem;
-  color: #fff;
+  color: var(--text-0);
   margin: 0;
-  font-family: 'Open Sans', sans-serif;
+  font-family: var(--font-body);
   font-weight: 500;
   z-index: 1;
 }
@@ -45,65 +45,36 @@
   padding: 1rem 0;
 }
 
-
-
 .back-home-btn {
   display: inline-block;
   padding: 12px 24px;
-  background: #fff;
-  color: #000;
+  background: var(--text-0);
+  color: var(--bg-0);
   text-decoration: none;
-  font-family: 'Courier New', 'Monaco', 'Consolas', monospace;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0.5px;
   border-radius: 4px;
-  transition: all 0.3s ease;
-  border: 2px solid #fff;
+  transition: background 0.3s ease, color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid var(--text-0);
 }
 
 .back-home-btn:hover {
-  background: #000;
-  color: #fff;
-  border-color: #fff;
+  background: var(--bg-0);
+  color: var(--text-0);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px var(--accent-glow);
 }
 
-/* Responsive design */
 @media (max-width: 768px) {
-  .not-found-page {
-    padding: 1rem;
-    padding-top: 6rem;
-  }
-  
-  .error-title {
-    font-size: 3rem;
-  }
-  
-  
-  .cat-gif {
-    max-width: 250px;
-  }
+  .not-found-page { padding: 1rem; padding-top: 6rem; }
+  .error-title { font-size: 3rem; }
+  .cat-gif { max-width: 250px; }
 }
 
 @media (max-width: 480px) {
-  .not-found-page {
-    padding: 0.5rem;
-    padding-top: 5rem;
-  }
-  
-  .error-title {
-    font-size: 2.5rem;
-  }
-  
-  
-  .cat-gif {
-    max-width: 200px;
-  }
-  
-  .back-home-btn {
-    padding: 10px 20px;
-    font-size: 0.9rem;
-  }
+  .not-found-page { padding: 0.5rem; padding-top: 5rem; }
+  .error-title { font-size: 2.5rem; }
+  .cat-gif { max-width: 200px; }
+  .back-home-btn { padding: 10px 20px; font-size: 0.9rem; }
 }

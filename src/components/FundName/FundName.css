@@ -39,8 +39,8 @@
 }
 
 .fund-name {
-    color: white;
-    font-family: 'Open Sans', sans-serif;
+    color: var(--text-0);
+    font-family: var(--font-body);
     font-size: clamp(3rem, 8vw, 8rem);
     font-weight: 600;
     text-shadow: 
@@ -60,7 +60,7 @@
 }
 
 .title-blur-overlay p {
-    color: white;
+    color: var(--text-0);
     font-family: 'Open Sans', sans-serif;
     font-size: clamp(0.8rem, 2.2vw, 1.1rem);
     font-weight: 300;

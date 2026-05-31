@@ -1,17 +1,16 @@
 .Projects-Container {
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--bg-1);
+    border: 1px solid var(--line-soft);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     padding: 4rem 2rem;
     max-width: 1200px;
     width: 100%;
     margin: 0 auto;
-    box-shadow: 
-        0 4px 12px rgba(255, 255, 255, 0.15),
-        0 8px 24px rgba(255, 255, 255, 0.1),
-        0 16px 48px rgba(255, 255, 255, 0.05);
+    box-shadow: var(--shadow-lg);
     box-sizing: border-box;
     overflow-x: hidden;
+    border-radius: 12px;
 }
 
 .Investment-Section {
@@ -25,11 +24,11 @@
 .Projects-Container h2 {
     font-size: clamp(1.5rem, 4vw, 2.5rem);
     font-weight: 600;
-    color: white;
+    color: var(--text-0);
     margin-bottom: 3rem;
     text-align: center;
-    font-family: 'Open Sans', sans-serif;
-    text-shadow: 
+    font-family: var(--font-body);
+    text-shadow:
         0 0 10px rgba(0, 0, 0, 0.8),
         0 0 20px rgba(0, 0, 0, 0.6);
 }
@@ -109,7 +108,7 @@
 /* Loading state */
 .loading-text {
     text-align: center;
-    color: #6b7280;
+    color: var(--text-2);
     font-size: 1.125rem;
     margin: 4rem 0;
     width: 100%;

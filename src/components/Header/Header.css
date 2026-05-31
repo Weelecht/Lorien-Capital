@@ -1,6 +1,7 @@
 .Header-Container {
     position: absolute;
-    background-color: black;
+    background-color: var(--bg-0);
+    border-bottom: 1px solid var(--line-soft);
     width: 100vw;
     height: 60px;
     z-index: 1000;
@@ -12,10 +13,10 @@
 }
 
 .Header-Container .header-title {
-    color: white !important;
+    color: var(--text-0) !important;
     padding: 1rem;
     font-size: 1.5rem !important;
-    font-family: 'Open Sans', sans-serif !important;
+    font-family: var(--font-body) !important;
     font-weight: 500 !important;
     cursor: pointer;
     transition: opacity 0.3s ease, transform 0.2s ease;
