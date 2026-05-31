@@ -8,15 +8,13 @@ const WEIGHT_MIN = 0.1;
 const WEIGHT_MAX = 25.0;
 const SIZE_MIN = 0.4;
 const SIZE_MAX = 2.5;
-const HEIGHT_MIN = 0.3;
-const HEIGHT_MAX = 4.0;
 
 const sizeForWeight = (weight) => {
   const normalized = Math.max(0, Math.min(1, (weight - WEIGHT_MIN) / (WEIGHT_MAX - WEIGHT_MIN)));
   const curved = Math.pow(normalized, 0.8);
+  const size = SIZE_MIN + (SIZE_MAX - SIZE_MIN) * curved;
   return {
-    size: SIZE_MIN + (SIZE_MAX - SIZE_MIN) * curved,
-    height: HEIGHT_MIN + (HEIGHT_MAX - HEIGHT_MIN) * curved,
+    size,
     grayLinear: 1 - normalized,
   };
 };
@@ -125,13 +123,13 @@ const GraphVisualization = ({
     if (!mesh) return;
     let i = 0;
     for (const node of nodes.values()) {
-      const { size, height } = sizeForWeight(node.weight);
+      const { size } = sizeForWeight(node.weight);
       dummy.position.set(
         node.x * SKIP - halfW + position[0],
         node.y * SKIP - halfH + position[1],
-        position[2] + height / 2
+        position[2] + size / 2
       );
-      dummy.scale.set(size, height, size);
+      dummy.scale.set(size, size, size);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
       tmpColor.setRGB(baseColors[i * 3], baseColors[i * 3 + 1], baseColors[i * 3 + 2]);
@@ -232,11 +230,11 @@ const GraphVisualization = ({
         out[i] = [0, 0, 0];
         continue;
       }
-      const { height } = sizeForWeight(node.weight);
+      const { size } = sizeForWeight(node.weight);
       out[i] = [
         node.x * SKIP - halfW + position[0],
         node.y * SKIP - halfH + position[1],
-        position[2] + height / 2,
+        position[2] + size / 2,
       ];
     }
     return out;
